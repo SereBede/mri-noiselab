@@ -28,7 +28,7 @@ def test_return_shape_matches_input():
     Given: Images of different shapes
     When: The subtract_noise function is called on each image
     Then: Each output should have the same shape as its corresponding input image"""
-    shapes = [(50, 50), (500, 500), (200, 150), (10, 10), (1,1), (5, 5, 5), (4, 4, 4, 4)]
+    shapes = [(50, 50), (500, 500), (200, 150), (10, 10), (5, 5, 5), (4, 4, 4, 4)]
     rng = np.random.default_rng(seed=42)
     
     for i, shape in enumerate(shapes):
@@ -39,6 +39,19 @@ def test_return_shape_matches_input():
         assert result.shape == shape
 
 
+def test_single_voxel_image():
+    """Test with an image of only one pixel or voxel
+    Given: An extended background and a single voxel image
+    When: The subtract_noise function is called
+    Then: A warning should be raised since std results 0"""
+    rng = np.random.default_rng(seed=42)
+    image = rng.rayleigh(scale=10, size=(1,1,1))+ 50
+    bg_area = rng.rayleigh(scale=10, size=(100, 100)) 
+    
+    with pytest.warns(RuntimeWarning):
+        subtract_noise(image, bg_area)
+
+
 def test_bg_area_different_shapes():
     """Test with bg_area of different sizes
     Given: An image and background areas of various different sizes
@@ -47,13 +60,26 @@ def test_bg_area_different_shapes():
     rng = np.random.default_rng(seed=42)
     image = rng.rayleigh(scale=10, size=(100, 100)) + 50
     
-    bg_shapes = [(20, 20), (50, 50), (30, 40), (10, 100), (3, 3, 3), (1,)]
+    bg_shapes = [(20, 20), (50, 50), (30, 40), (10, 100), (3, 3, 3)]
     
     for bg_shape in bg_shapes:
         bg_area = rng.rayleigh(scale=10, size=bg_shape)
         result = subtract_noise(image, bg_area)
         
         assert result.shape == image.shape
+        
+
+def test_bg_area_single_voxel():
+    """Test with bg_area of only one pixel or voxel
+    Given: An extended image and only one background point
+    When: The subtract_noise function is called
+    Then: ValueError should be raised since std results 0"""
+    rng = np.random.default_rng(seed=42)
+    image = rng.rayleigh(scale=10, size=(100, 100)) + 50
+    bg_area = rng.rayleigh(scale=10, size=(1,1,1))
+    
+    with pytest.raises(ValueError):
+        subtract_noise(image, bg_area)
 
 
 def test_bg_area_same_size_as_image():
@@ -122,82 +148,50 @@ def test_no_inf_values():
 # Edge cases with uniform or zeros images or background
 
 def test_zero_background():
-    """Test with background containing only zeros
-    Given: An image and a background area containing only zeros
+    """Test with background containing only zeros, no noise is present
+    Given: An image with noise and a background area containing only zeros
     When: The subtract_noise function is called
-    Then: The mean of result should be close to quadrature sum of mean and std
-        of the starting image"""
+    Then: ValueError is raised"""
     rng = np.random.default_rng(seed=42)
     image = rng.rayleigh(scale=50, size=(100, 100)) + 50
     bg_area = np.zeros((50, 50))
     
-    result = subtract_noise(image, bg_area)
-    
-    # Since background is uniformly 0, std(bg_area) = 0
-    assert np.std(bg_area) == 0
-    assert np.mean(bg_area) == 0    
-    
-    assert np.isclose((np.mean(result)**2),(np.mean(image)**2 + np.std(image)**2)) 
+    # Since background is uniformly 0, std(bg_area) = 0, so there is no noise  
+    with pytest.raises(ValueError):
+        subtract_noise(image, bg_area)
 
 
 def test_all_zeros_image():
     """Test with image of all zeros
     Given: An image of all zeros and a random background
     When: The subtract_noise function is called
-    Then: The result should have all zeros values"""
+    Then: Value Error is raised, since there is nothing to be cleaned"""
     rng = np.random.default_rng(seed=42)
     image = np.zeros((50, 50))
     bg_area = rng.rayleigh(scale=10, size=(30, 30))
     
-    result = subtract_noise(image, bg_area)
-    
-    # Since the image is uniformly 0, std(image) = 0
-    assert np.std(image) == 0
-    assert np.mean(image) == 0
-    
-    assert np.all(result == 0)
-
-
-def test_both_zeros_image_and_bg():
-    """Test with both image and background of all zeros
-    Given: An image and a background both of all zeros
-    When: The subtract_noise function is called
-    Then: The result should have the same shape and all zeros values"""
-    image = np.zeros((50, 50))
-    bg_area = np.zeros((30, 30))
-    
-    result = subtract_noise(image, bg_area)
-    
-    # Since background is uniformly 0
-    assert np.std(bg_area) == 0
-    assert np.mean(bg_area) == 0
-    
-    # Since the image is uniformly 0
-    assert np.std(image) == 0
-    assert np.mean(image) == 0
-    
-    # also the result is zeros
-    assert result.shape == image.shape
-    assert np.all(result == 0)
+    # Since the image is uniformly 0,
+    with pytest.raises(ValueError):
+        subtract_noise(image, bg_area)
 
 
 def test_uniform_image():
     """Test with uniform image (all pixels equal, meaning no noise)
     Given: A uniform noiseless image and a background affected by noise
     When: The subtract_noise function is called
-    Then: The square(mean result) should be close to square(m_ave) - 2*square(sigma_r) """
+    Then: A runtime warning is raised and the square(mean result) 
+        should be close to square(m_ave) - 2*square(sigma_r) """
     rng = np.random.default_rng(seed=42)
     img_level = 50
     image = np.full((100, 100), img_level)
     bg_area = rng.rayleigh(scale=10, size=(50, 50))
     
     sigma_r = np.std(bg_area)/0.655
-    result = subtract_noise(image, bg_area)
-    
+        
     # With uniform image, std(image) = 0
-    assert np.std(image) == 0
-    assert np.mean(image) == img_level 
-    
+    with pytest.warns(RuntimeWarning):
+        result = subtract_noise(image, bg_area)
+            
     assert np.isclose((np.mean(result)**2),(img_level**2 - 2*(sigma_r**2))) 
 
 
@@ -205,41 +199,36 @@ def test_uniform_background():
     """Test with uniform bakground (all pixels equal, meaning bias is present)
     Given: A uniform constant noiseless but biased background 
     When: The subtract_noise function is called
-    Then: The squared mean result should be close to to squared sum of image mean and std"""
+    Then: ValueError is raised since noise is estimated to be 0"""
     rng = np.random.default_rng(seed=42)
     bg_level= 30
     image = rng.rayleigh(scale= 50, size=(100, 100))
     bg_area = np.full((50, 50), bg_level)
     
-    m_ave = np.mean(image)
-    m_sd = np.std(image)
-    result = subtract_noise(image, bg_area)
-    
-    # With uniform backgroud
-    assert np.std(bg_area) == 0
-    assert np.mean(bg_area) == bg_level
-    
-    assert np.isclose((np.mean(result)**2),(m_ave**2 + m_sd**2))
-
-    
-def test_both_uniform_image_and_bg():
-    """Test with both constant noiseless image and background
-    Given: A uniform constant noiseless background 
+    with pytest.raises(ValueError):
+        subtract_noise(image, bg_area)
+        
+        
+def test_zero_mean_image():
+    """Test with a non uniform image with 0 mean
+    Given: A non-uniform with zero mean image and a noisy background
     When: The subtract_noise function is called
-    Then: The result should be equal to the initial image"""
-    image = np.full((100, 100), 50)
-    bg_area = np.full((50, 50), 10)
+    Then: A runtime warning is raised since mean=0 and the square(mean result) 
+        should be close to square(m_ave) - 2*square(sigma_r) """
+    rng = np.random.default_rng(seed=42)
+    img_level = 50
+    image = np.tile([[-1,0,1],[0,1,-1],[1,-1,0]],(9,9))*img_level
+    bg_area = rng.rayleigh(scale=10, size=(50, 50))
     
-    result = subtract_noise(image, bg_area)
-    
+    img_sd =np.std(image)
+    sigma_r = np.std(bg_area)/0.655
+        
     # With uniform image, std(image) = 0
-    assert np.std(image) == 0
-    # With uniform background, std(bg_area) = 0
-    assert np.std(bg_area) == 0
-    # Both std = 0, so sigma_r = 0
-    assert result.shape == image.shape
-    np.testing.assert_array_equal(result, image)
-
+    with pytest.warns(RuntimeWarning):
+        result = subtract_noise(image, bg_area)
+            
+    assert np.isclose((np.mean(result)**2),(img_sd**2 - 2*(sigma_r**2)))       
+        
 
 # Noise level tests
    

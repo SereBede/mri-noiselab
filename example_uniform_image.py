@@ -47,7 +47,7 @@ def img_stats (image):
 # change those values to vary noise contribution
 true_signal = 50
 noise_level = 20
-nonc = np.sqrt(true_signal**2 + noise_level**2)
+
 
 # Generate a uniform signal image
 true_img = np.full((100,100),true_signal,dtype=float) 

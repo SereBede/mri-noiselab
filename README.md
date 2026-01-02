@@ -31,3 +31,5 @@ value of signal.
 ## Requirements
 
 ## Documentation
+
+## Developer
