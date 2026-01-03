@@ -60,7 +60,7 @@ def test_bg_area_different_shapes():
     rng = np.random.default_rng(seed=42)
     image = rng.rayleigh(scale=10, size=(100, 100)) + 50
     
-    bg_shapes = [(20, 20), (50, 50), (30, 40), (10, 100), (3, 3, 3)]
+    bg_shapes = [(20, 20), (50, 50), (30, 40), (10, 100), (5, 5, 5)]
     
     for bg_shape in bg_shapes:
         bg_area = rng.rayleigh(scale=10, size=bg_shape)
@@ -196,13 +196,13 @@ def test_uniform_image():
 
 
 def test_uniform_background():
-    """Test with uniform bakground (all pixels equal, meaning bias is present)
-    Given: A uniform constant noiseless but biased background 
+    """Test with uniform bakground (all pixels equal)
+    Given: A uniform constant noiseless background 
     When: The subtract_noise function is called
     Then: ValueError is raised since noise is estimated to be 0"""
     rng = np.random.default_rng(seed=42)
     bg_level= 30
-    image = rng.rayleigh(scale= 50, size=(100, 100))
+    image = rng.rayleigh(scale= 50, size=(100, 100)) + 50
     bg_area = np.full((50, 50), bg_level)
     
     with pytest.raises(ValueError):
@@ -231,7 +231,22 @@ def test_zero_mean_image():
         
 
 # Noise level tests
-   
+
+def test_biased_background():
+    """Test with biased bakground 
+    Given: A noisy background with a sistematic shift +50
+    When: The subtract_noise function is called
+    Then: RuntimeWarning is raised since the ratio of background average and 
+        standard deviation differs from 1,91 as expected in a Rayleigh distribution."""
+    rng = np.random.default_rng(seed=42)
+    bg_level= 30
+    image = rng.rayleigh(scale= bg_level, size=(100, 100)) + 100
+    bg_area = rng.rayleigh(scale= bg_level, size=(50, 50)) + 50
+    
+    with pytest.warns(RuntimeWarning):
+        subtract_noise(image, bg_area, b_tol=0.1)
+
+    
 def test_very_high_background():
     """Test with very high background standard deviation
     Given: An image with low noise and a background with very high standard deviation

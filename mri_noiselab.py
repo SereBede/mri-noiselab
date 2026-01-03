@@ -8,7 +8,7 @@ subtract_noise
 import numpy as np
 import warnings
 
-def subtract_noise(image, bg_area):
+def subtract_noise(image, bg_area, b_tol=0.1):
     """
     Perform pixel-wise noise reduction on magnitude images with Rayleigh noise.
  
@@ -32,7 +32,8 @@ def subtract_noise(image, bg_area):
          the input image or a separate array. Shape may differ from `image`.
          Should represent a region where the true signal is zero or negligible,
          containing only noise to be characterized.
- 
+    b_tol : float, optional
+     Bias tolerance parameter for validation checks. Default is 0,1.
  
      Returns
      -------
@@ -60,6 +61,9 @@ def subtract_noise(image, bg_area):
          If image mean is exactly zero.
     RuntimeWarning
          If image standard deviation is zero (uniform image).
+    RuntimeWarning
+        If ratio of background average and standard deviation differs from that 
+        expected in a Rayleigh distribution.
     
 
     """
@@ -86,7 +90,15 @@ def subtract_noise(image, bg_area):
         warnings.warn("Image average results 0", RuntimeWarning)
     
     if sd_img == 0:
-        warnings.warn("No noise found in image (std = 0)", RuntimeWarning) 
+        warnings.warn("No noise found in image (std = 0)", RuntimeWarning)
+    
+    ratio = ave_bg / sd_bg
+
+    if not np.isclose(ratio, 1.91, atol=b_tol):
+        warnings.warn(
+            f"Background may be biased: ave/std = {ratio:.3f},expected ~1.91 ± {b_tol}",
+            RuntimeWarning)
+
     
     m_ave = np.full(np.shape(image),ave_img) #image average magnitude
     m_sd = np.full(np.shape(image),sd_img ) #image standard deviation
