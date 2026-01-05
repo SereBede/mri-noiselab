@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 In this example a uniform image affected by Rayleigh noise is simulated and 
-then cleaning is performed by using subtract_noise function from mri_noiselab module. 
-In the end images are shown to see differences.
+then cleaning is performed by using subtract_noise function from mri_noiselab
+module. In the end images are shown to see differences.
 
 """
 

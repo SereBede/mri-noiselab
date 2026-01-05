@@ -111,6 +111,25 @@ def test_bg_area_slice_of_image():
     assert result.shape == image.shape
 
 
+def test_filter_different_sizes():
+    """Test with filter of different sizes
+    Given: A uniform image and a background area
+    When: The subtract_noise function is called with each filter size
+    Then: The result should always have the same shape as the input image
+        """
+    rng = np.random.default_rng(seed=42)
+    image = rng.rayleigh(scale=10, size=(100, 100)) + 50
+    bg_area = rng.rayleigh(scale=10, size=(50,50))
+    
+    filter_sizes = [1, 10, 20, 50, 100, 200]
+    
+    for fs in filter_sizes:
+        
+        result = subtract_noise(image, bg_area, f_size=fs)
+        
+        assert result.shape == image.shape
+
+
 # Positivity and no infinity requirement tests
 
 def test_positivity_requirement():
@@ -214,7 +233,7 @@ def test_zero_mean_image():
     Given: A non-uniform with zero mean image and a noisy background
     When: The subtract_noise function is called
     Then: A runtime warning is raised since mean=0 and the square(mean result) 
-        should be close to square(m_ave) - 2*square(sigma_r) """
+        should be close to square(img_sd) - 2*square(sigma_r) """
     rng = np.random.default_rng(seed=42)
     img_level = 50
     image = np.tile([[-1,0,1],[0,1,-1],[1,-1,0]],(9,9))*img_level
@@ -225,9 +244,9 @@ def test_zero_mean_image():
         
     # With uniform image, std(image) = 0
     with pytest.warns(RuntimeWarning):
-        result = subtract_noise(image, bg_area)
+        result = subtract_noise(image, bg_area,f_size=9)
             
-    assert np.isclose((np.mean(result)**2),(img_sd**2 - 2*(sigma_r**2)))       
+    assert np.isclose((np.mean(result)**2),(img_sd**2 - 2*(sigma_r**2)),rtol=0.01)       
         
 
 # Noise level tests
@@ -298,12 +317,17 @@ def test_sigma_r_calculation():
 
 
 def test_A2_formula_manual_calculation():
-    """Test A2 formula with manual calculation"""
+    """Test A2 formula with manual calculation
+    Given: The same uniform image and background affected by Rayleigh noise
+    When: The subtract_noise function is called locally
+    Then: The mean of resulting image should be close to the the mean of 
+        expected image performing global manual calculation"""
+    
     rng = np.random.default_rng(seed=42)
     image = rng.rayleigh(scale=10, size=(50, 50)) + 50
     bg_area = rng.rayleigh(scale=10, size=(30, 30))
     
-    # Manual calculation
+    # Manual calculation global
     m_ave = np.full(np.shape(image), np.mean(image))
     m_sd = np.full(np.shape(image), np.std(image))
     m_sd_bg = np.full(np.shape(image), np.std(bg_area))
@@ -313,22 +337,23 @@ def test_A2_formula_manual_calculation():
     expected_A2[expected_A2 < 0] = 0
     expected_A = np.sqrt(expected_A2)
     
-    result = subtract_noise(image, bg_area)
+    # f_size is the pixel-size of windowing used to perform same reduction locally
+    result = subtract_noise(image, bg_area, f_size=10)
     
-    np.testing.assert_array_almost_equal(result, expected_A)
+    assert np.isclose(np.mean(expected_A),np.mean(result),rtol=0.01)
 
 
 def test_image_and_bg_identical():
     """Test when image and background are identical
     Given: Image and background are identical (same data)
-    When: The subtract_noise function is called
-    Then: The result should be zero """
+    When: The subtract_noise function is called with filter size = image size
+    Then: The mean of result should be near zero """
     rng = np.random.default_rng(seed=42)
     data = rng.rayleigh(scale=50, size=(100, 100))
     
-    result = subtract_noise(data, data)
+    result = subtract_noise(data, data, f_size=100)
     
-    np.testing.assert_allclose(result,np.zeros_like(data))
+    assert np.isclose(np.mean(result),0,atol=0.5)
 
 
 # Reproducibility tests

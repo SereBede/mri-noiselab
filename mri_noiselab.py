@@ -6,13 +6,14 @@ subtract_noise
 
 """
 import numpy as np
+from scipy.ndimage import uniform_filter
 import warnings
 
-def subtract_noise(image, bg_area, b_tol=0.1):
+def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
     """
-    Perform pixel-wise noise reduction on magnitude images with Rayleigh noise.
+    Performs pixel-wise noise reduction on magnitude images with Rayleigh noise.
  
-    This function removes Rayleigh-distributed noise from magnitude images
+    This function reduces Rayleigh-distributed noise from magnitude images
     (e.g., MRI magnitude images) by estimating the noise level from a background
     region and applying a correction based on the Rician noise model. The algorithm
     computes corrected pixel intensities using the formula:
@@ -33,10 +34,12 @@ def subtract_noise(image, bg_area, b_tol=0.1):
          Should represent a region where the true signal is zero or negligible,
          containing only noise to be characterized.
     b_tol : float, optional
-     Bias tolerance parameter for validation checks. Default is 0,1.
+         Bias tolerance parameter for validation checks. Default is 0,1.
+    f_size: float, optional
+        The size in pixels of local filter. Default is 10.
  
-     Returns
-     -------
+    Returns
+    -------
      A : numpy.ndarray
          Noise-corrected image with the same shape as input `image`. All values
          are non-negative (>= 0) due to the positivity constraint applied to
@@ -100,17 +103,16 @@ def subtract_noise(image, bg_area, b_tol=0.1):
             RuntimeWarning)
 
     
-    m_ave = np.full(np.shape(image),ave_img) #image average magnitude
-    m_sd = np.full(np.shape(image),sd_img ) #image standard deviation
+    m_ave = uniform_filter(image, size=f_size) #image local average magnitude
+    m_ave_squared = np.square(m_ave) #square of local average magnitude
+    squares_mean = uniform_filter(image**2, size=f_size) #local mean of the squared image 
+    m_sd_squared = np.subtract(squares_mean,m_ave_squared) #local variance of the image
+
     m_sd_bg = np.full(np.shape(image), sd_bg) #background standard deviation
     sigma_r = np.divide(m_sd_bg, 0.655) #Rayleigh sigma parameter estimation 
     
-    A2 = np.square(m_ave) + np.square(m_sd) - 2*np.square(sigma_r)
+    A2 = m_ave_squared + m_sd_squared - 2*np.square(sigma_r)
     A2[A2 < 0] = 0 # positivity requirement
     
     A = np.sqrt(A2)
     return A
-
-
-
-    
