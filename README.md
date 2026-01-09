@@ -21,9 +21,14 @@ Then inside your code:
 
 Now you can simply use the function subtract_noise inside your code.
 
+Pay attention, only positive array in input.
+
 ## Requirements
 
-The module requires numpy and warnings
+The module requires:
+ - numpy
+ - warnings
+ - uniform_filter from scipy.ndimage
 
 ## Documentation
 
@@ -76,7 +81,7 @@ noise in MR images", published in 1985.
 
 **Cleaning Algorithm Steps**
 
-1. Validate inputs (non-zero images, valid background statistics)
+1. Validate inputs (non-zero or negative images, valid background statistics)
 2. Compute image statistics: mean (m_ave) and std (m_sd)
 3. Estimate Rayleigh noise parameter from background: sigma_r
 4. Calculate corrected magnitude squared: A² = m_ave² + m_sd² - 2*sigma_r²
@@ -86,6 +91,7 @@ noise in MR images", published in 1985.
 
 **Assumptions**
 
+- Images and background are positive valued
 - Noise follows a Rayleigh distribution
 - Background region contains only noise (negligible true signal)
 

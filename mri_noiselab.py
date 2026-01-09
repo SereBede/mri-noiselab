@@ -25,10 +25,10 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
  
     Parameters
     ----------
-    image : numpy.ndarray
-         Input image to be corrected, typically a 2D array representing a uniform
-         region or entire magnitude image affected by Rayleigh noise. 
-    bg_area : numpy.ndarray
+    image : numpy.ndarray of positive values
+         Input image to be corrected, typically a 2D array representing
+         a uniform region or entire magnitude image affected by Rayleigh noise. 
+    bg_area : numpy.ndarray of positive values
          Background region containing only noise (no signal). Can be a slice of
          the input image or a separate array. Shape may differ from `image`.
          Should represent a region where the true signal is zero or negligible,
@@ -48,6 +48,10 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
     Raises
     ------
     ValueError
+         If background region has negative values.
+    ValueError
+         If input image has negative values.
+    ValueError
          If background region is entirely zero (all pixels == 0).
     ValueError
          If input image is entirely zero (all pixels == 0).
@@ -58,10 +62,6 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
  
     Warns
     -----
-    UserWarning
-         If background mean is exactly zero.
-    RuntimeWarning
-         If image mean is exactly zero.
     RuntimeWarning
          If image standard deviation is zero (uniform image).
     RuntimeWarning
@@ -70,6 +70,17 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
     
 
     """
+    # Checks on inputs
+    
+    if np.any(image < 0):
+        raise ValueError("""Found negative values in the image.\n
+                         Possible solutions: clip or set an offset before 
+                         passing it to the function.""")
+    
+    if np.any(bg_area < 0):
+        raise ValueError("""Found negative values in the background.\n
+                         Possible solutions: clip or set an offset before 
+                         passing it to the function.""")
     
     if np.all(bg_area == 0):
         raise ValueError("Background is totally dark, all pixel are 0")
@@ -82,18 +93,6 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
 
     if sd_bg == 0:
         raise ValueError("Unable to estimate noise from background (std = 0)")
-      
-    if ave_bg == 0:
-        warnings.warn("Background average results 0", UserWarning) 
-
-    ave_img = np.mean(image)
-    sd_img = np.std(image)
-    
-    if ave_img == 0:
-        warnings.warn("Image average results 0", RuntimeWarning)
-    
-    if sd_img == 0:
-        warnings.warn("No noise found in image (std = 0)", RuntimeWarning)
     
     ratio = ave_bg / sd_bg
 
@@ -101,7 +100,14 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
         warnings.warn(
             f"Background may be biased: ave/std = {ratio:.3f},expected ~1.91 ± {b_tol}",
             RuntimeWarning)
-
+    
+    sd_img = np.std(image)
+       
+    if sd_img == 0:
+        warnings.warn("No noise found in image (std = 0)", RuntimeWarning)
+   
+    
+    # Computation
     
     m_ave = uniform_filter(image, size=f_size) #image local average magnitude
     m_ave_squared = np.square(m_ave) #square of local average magnitude
@@ -111,8 +117,12 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
     m_sd_bg = np.full(np.shape(image), sd_bg) #background standard deviation
     sigma_r = np.divide(m_sd_bg, 0.655) #Rayleigh sigma parameter estimation 
     
-    A2 = m_ave_squared + m_sd_squared - 2*np.square(sigma_r)
-    A2[A2 < 0] = 0 # positivity requirement
+    A_squared = m_ave_squared + m_sd_squared - 2*np.square(sigma_r)
     
-    A = np.sqrt(A2)
+    if np.any(A_squared < 0):
+        warnings.warn("""Obtained at least one negative value,
+                      changed into zero before final square root.""", RuntimeWarning)
+        A_squared[A_squared < 0] = 0 # positivity requirement
+    
+    A = np.sqrt(A_squared)
     return A
