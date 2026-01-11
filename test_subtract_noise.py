@@ -197,6 +197,23 @@ def test_no_inf_values():
     # no division by zero has occurred
     assert not np.any(np.isinf(result))
 
+# Overflow and underflow
+
+def test_overflow_in_square_raises():
+    """
+    Force overflow during computation.
+    Given: An image vith very high value and a background area
+    When: The subtract_noise function is called
+    Then: Numpy raises FloatingPointError and RuntimeError is raised
+    """
+    
+    rng = np.random.default_rng(seed=42)
+    bg_area = rng.rayleigh(scale=1e10, size=(50, 50)) # background valid
+    image = np.add(np.full((50, 50), 1e20, dtype=np.float32),bg_area)  # square -> inf in float32
+
+    with pytest.raises(RuntimeError, match=r"(overflow|Numerical overflow|invalid operation)"):
+        subtract_noise(image, bg_area, f_size=3)
+        
 
 # Edge cases with uniform or zeros images or background
 
@@ -369,7 +386,7 @@ def test_image_and_bg_identical():
     rng = np.random.default_rng(seed=42)
     data = rng.rayleigh(scale=50, size=(100, 100))
     
-    with pytest.warns(RuntimeWarning, match="Background may be biased"):
+    with pytest.warns(RuntimeWarning, match="Obtained at least one negative"):
         result = subtract_noise(data, data, f_size=100)
     
     assert np.isclose(np.mean(result),0,atol=0.5)

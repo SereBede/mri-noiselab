@@ -9,7 +9,7 @@ import numpy as np
 from scipy.ndimage import uniform_filter
 import warnings
 
-def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
+def subtract_noise(image, bg_area, b_tol=0.1, f_size=10, np_type=np.float32):
     """
     Performs pixel-wise noise reduction on magnitude images with Rayleigh noise.
  
@@ -37,6 +37,8 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
          Bias tolerance parameter for validation checks. Default is 0,1.
     f_size: float, optional
         The size in pixels of local filter. Default is 10.
+    np_type: numpy.dtype, optional
+        The numpy data type to be used during computation. Default is np.float32
  
     Returns
     -------
@@ -59,6 +61,8 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
          If background has zero standard deviation (constant values).
     ValueError
          If background standard deviation is negative (should never occur).
+    RuntimeError
+         If numpy encounters overflow, invalid, zero division, underflow.
  
     Warns
     -----
@@ -70,7 +74,7 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
     
 
     """
-    # Checks on inputs
+    # Checks on inputs:
     
     if np.any(image < 0):
         raise ValueError("""Found negative values in the image.\n
@@ -107,22 +111,46 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10):
         warnings.warn("No noise found in image (std = 0)", RuntimeWarning)
    
     
-    # Computation
+    # Computation:
+    try:    
+        with np.errstate(over='raise', invalid='raise', divide='raise', under='raise'):
+            # 0) cast to float
+            image = np.astype(image,np_type)
+            bg_area = np.astype(bg_area, np_type)
+            
+            # 1) image local mean  (i.e. magnitude average)
+            m_ave = uniform_filter(image, size=f_size) #image local average magnitude
+            m_ave_squared = np.square(m_ave) #square of local average magnitude
+            
+            # 2) image local variance (i.e. squared standard deviation) 
+            squared_image = np.square(image) #squared image
+            squares_mean = uniform_filter(squared_image, size=f_size) #local mean of the squared image 
+            m_sd_squared = np.subtract(squares_mean,m_ave_squared) #local variance of the image
+            
+            # 3) background global Rayleigh distribution's sigma parameter
+            m_sd_bg = np.full(np.shape(image), sd_bg) #background standard deviation
+            sigma_r = np.divide(m_sd_bg, 0.655) #Rayleigh sigma parameter estimation 
+            squared_sigma_r = np.square(sigma_r)
+            
+            # 4) magnitude correction
+            
+            A_squared = m_ave_squared + m_sd_squared - 2*squared_sigma_r
+            
+            # positivity requirement to avoid Nan
+            if np.any(A_squared < 0):
+                warnings.warn("""Obtained at least one negative value,
+                              changed into zero before final square root.""", RuntimeWarning)
+                A_squared[A_squared < 0] = 0 
+            
+            A = np.sqrt(A_squared)
+            
     
-    m_ave = uniform_filter(image, size=f_size) #image local average magnitude
-    m_ave_squared = np.square(m_ave) #square of local average magnitude
-    squares_mean = uniform_filter(image**2, size=f_size) #local mean of the squared image 
-    m_sd_squared = np.subtract(squares_mean,m_ave_squared) #local variance of the image
-
-    m_sd_bg = np.full(np.shape(image), sd_bg) #background standard deviation
-    sigma_r = np.divide(m_sd_bg, 0.655) #Rayleigh sigma parameter estimation 
-    
-    A_squared = m_ave_squared + m_sd_squared - 2*np.square(sigma_r)
-    
-    if np.any(A_squared < 0):
-        warnings.warn("""Obtained at least one negative value,
-                      changed into zero before final square root.""", RuntimeWarning)
-        A_squared[A_squared < 0] = 0 # positivity requirement
-    
-    A = np.sqrt(A_squared)
+    except FloatingPointError as e:     
+        raise RuntimeError(
+            """Numerical overflow/invalid operation during noise subtraction,
+            Suggestion:In case of overflow try changing np_type to np.float64 
+            or decuplicate both inputs and outputs"""
+        ) from e #instead of print(str(e))
+               
+        
     return A
