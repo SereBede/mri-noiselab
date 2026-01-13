@@ -2,7 +2,8 @@
 """
 The scope of this module is to reduce the noise in magnetic resonance images.
 Functions:
-subtract_noise
+ - subtract_noise
+ - subtract_noise_masked
 
 """
 import numpy as np
@@ -149,8 +150,73 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10, np_type=np.float32):
         raise RuntimeError(
             """Numerical overflow/invalid operation during noise subtraction,
             Suggestion:In case of overflow try changing np_type to np.float64 
-            or decuplicate both inputs and outputs"""
+            or reduce by a factor both inputs and reapply the conversion to outputs"""
         ) from e #instead of print(str(e))
                
         
     return A
+
+
+
+def subtract_noise_masked(image_ma, bg_ma, *, fill_value=0.0, return_masked=True, **kwargs):
+    """
+    Apply Rayleigh noise subtraction to a masked image.
+
+    This wrapper enables the use of numpy masked arrays with the
+    `subtract_noise` function, which does not natively support masks.
+
+    Masked pixels are temporarily filled with a constant value for the
+    numerical computation and the original mask is restored on output.
+
+    Parameters
+    ----------
+    image_ma : numpy.ma.MaskedArray
+        Input image as a masked array. Masked pixels are excluded from
+        validation checks and restored in the output.
+    bg_ma : numpy.ndarray or numpy.ma.MaskedArray
+        Background region used for noise estimation. If masked, only
+        unmasked values are used to compute statistics.
+    fill_value : float, optional
+        Value used to fill masked pixels before computation.
+        Default is 0.0 (it will affect local mean and std at borders).
+    return_masked : bool, optional
+        If True, return a masked array with the same mask as `image_ma`.
+        If False, return a regular numpy.ndarray.
+    **kwargs
+        Additional keyword arguments forwarded to `subtract_noise`.
+
+    Returns
+    -------
+    numpy.ndarray or numpy.ma.MaskedArray
+        Noise-corrected image. Masked if `return_masked=True`.
+
+    Raises
+    ------
+    TypeError
+        If `image_ma` is not a numpy.ma.MaskedArray.
+    ValueError
+        If the background has no valid (unmasked) pixels.
+    """
+
+    if not np.ma.isMaskedArray(image_ma):
+        raise TypeError("""image_ma must be a numpy.ma.MaskedArray,
+                        otherwise use subtract_noise""")
+
+    # bg stats are based only on unmasked pixels, no need to preserve position
+    if np.ma.isMaskedArray(bg_ma):
+        bg_valid = bg_ma.compressed() #1D array with valid only
+    else:
+        bg_valid = bg_ma
+
+    if bg_valid.size == 0:
+        raise ValueError("Background has no valid (unmasked) pixels.")
+
+    # fill masked pixels for computation
+    image_filled = image_ma.filled(fill_value)
+
+    output = subtract_noise(image_filled, bg_valid, **kwargs)
+
+    if return_masked:
+        return np.ma.array(output, mask=np.ma.getmaskarray(image_ma), copy=False)
+    return output
+

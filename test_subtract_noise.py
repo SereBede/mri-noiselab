@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from mri_noiselab import subtract_noise 
+from mri_noiselab import subtract_noise, subtract_noise_masked
 
 
 # For sake of simpicity images are generated with raileigh noise 
@@ -419,6 +419,82 @@ def test_same_seed_gives_reproducible_results():
     result2 = subtract_noise(image2, bg_area2)
     
     np.testing.assert_array_equal(result1, result2)
+
+
+# Masking tests
+
+def test_masked_wrapper_preserves_mask():
+    """
+    Given: a masked input image with a defined mask
+    When: subtract_noise_masked is applied
+    Then: the output is a masked array and the mask is preserved exactly
+    """
+    rng = np.random.default_rng(42)
+    img = rng.rayleigh(scale=10, size=(64, 64)) + 50
+    rect = np.zeros_like(img, dtype=bool)
+    rect[10:40, :] = True  # a rectangle is masked
+
+    img_ma = np.ma.array(img, mask=rect)
+    bg = rng.rayleigh(scale=10, size=(20, 20))
+
+    output = subtract_noise_masked(img_ma, bg, f_size=5)
+
+    assert np.ma.isMaskedArray(output)
+    np.testing.assert_array_equal(output.mask, rect)
+    
+
+def test_masked_wrapper_masked_pixels_ignored_in_checks():
+    """
+    Given: an image containing negative values only in masked pixels
+    When: subtract_noise_masked is applied
+    Then: no ValueError is raised and masked pixels remain masked
+    """
+    rng = np.random.default_rng(0)
+    img = rng.rayleigh(scale=10, size=(64, 64)) + 50
+    img[0, 0] = -1.0  # negative value but then is masked
+
+    mask = np.zeros_like(img, dtype=bool)
+    mask[0, 0] = True # mask hides the negative pixel
+    img_ma = np.ma.array(img, mask=mask)
+
+    bg = rng.rayleigh(scale=10, size=(20, 20)) #it is not masked
+
+    out = subtract_noise_masked(img_ma, bg, fill_value=50, f_size=3)
+
+    # no ValueError is raised by checks
+    # and pixel (0,0) is still masked
+    assert out.mask[0, 0] is np.True_
+
+
+def test_masked_bg_empty_raises():
+    """
+    Given: a background array where all pixels are masked
+    When: subtract_noise_masked is applied
+    Then: a ValueError is raised indicating no valid background pixels
+    """
+    img = np.ma.array(np.ones((16, 16)), mask=False) # no mask
+    bg = np.ma.array(np.ones((10, 10)), mask=True)  # all masked
+
+    with pytest.raises(ValueError, match=r"Background has no valid"):
+        subtract_noise_masked(img, bg)
+        
+        
+def test_masked_wrapper_equivalent_when_no_mask():
+    """
+    Given: an image with a mask entirely set to False
+    When: subtract_noise and subtract_noise_masked are applied
+    Then: the numerical results are identical
+    """
+    rng = np.random.default_rng(42)
+    img = rng.rayleigh(scale=10, size=(64, 64)) + 50
+    bg = rng.rayleigh(scale=10, size=(20, 20))
+
+    img_ma = np.ma.array(img, mask=np.zeros_like(img, dtype=bool))
+
+    out_plain = subtract_noise(img, bg, f_size=5)
+    out_masked = subtract_noise_masked(img_ma, bg, f_size=5)
+
+    np.testing.assert_allclose(out_masked.data, out_plain, rtol=0, atol=0)
 
 
 if __name__ == '__main__':

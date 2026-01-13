@@ -33,8 +33,9 @@ The module requires:
 ## Documentation
 
 See the following examples in this same github repository:
- - example_uniform_image
- - example_3levels_image
+ - example_uniform_image.py
+ - example_3levels_image.py
+ - example_3_ROIs.py
  
 And how to guides:
  -  howto_clean_dicom working on the MR_femur_head.dcm file
