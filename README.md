@@ -7,21 +7,19 @@ This operation is particularly useful in quantitative MRI applications
 
 The subtract_noise function reduces Rayleigh-distributed noise in images 
 (e.g., MRI magnitude images) by estimating the noise level from a background
-region.
+region. Cleaning is performed locally and provides also numpy masked support.
 
-## Installation & Usage
-
+## Installation
+Clone the repository:
 From terminal inside your workig directory or your virtual env:
-
+```
     git clone https://github.com/SereBede/mri-noiselab.git
-
+```
 Then inside your code:
-
+```python
     import mri_noiselab
-
-Now you can simply use the function subtract_noise inside your code.
-
-Pay attention, only positive array in input.
+```
+Make sure the required dependencies are installed (see below).
 
 ## Requirements
 
@@ -32,6 +30,40 @@ The module requires:
 
 ## Documentation
 
+###Basic Usage
+⚠️ Important
+Inputs must contain finite, non-negative values.
+Background regions must contain noise only (no signal).
+
+```python
+import numpy as np
+from mri_noiselab import subtract_noise
+
+# example image and background
+image = np.random.rayleigh(scale=20, size=(100, 100)) + 50
+background = np.random.rayleigh(scale=20, size=(30, 30))
+
+cleaned = subtract_noise(image, background, f_size=10)
+```
+
+Masked Array Support
+
+The library supports NumPy masked arrays via a dedicated wrapper:
+
+```python
+import numpy as np
+from mri_noiselab import subtract_noise_masked
+
+image_ma = np.ma.masked_array(image, mask=image < 10)
+bg_ma = np.ma.masked_array(background, mask=background < 5)
+
+cleaned_ma = subtract_noise_masked(image_ma, bg_ma)
+```
+
+Masked pixels are excluded from validation and restored in the output.
+
+### Examples
+
 See the following examples in this same github repository:
  - example_uniform_image.py
  - example_3levels_image.py
@@ -39,6 +71,7 @@ See the following examples in this same github repository:
  
 And how to guides:
  -  howto_clean_dicom working on the MR_femur_head.dcm file
+  
  
 ## License
 
@@ -93,7 +126,7 @@ noise in MR images", published in 1985.
 **Assumptions**
 
 - Images and background are positive valued
-- Noise follows a Rayleigh distribution
+- Noise follows a Rayleigh distribution 
 - Background region contains only noise (negligible true signal)
 
 

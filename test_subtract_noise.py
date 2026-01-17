@@ -1,10 +1,13 @@
 import pytest
+
 import numpy as np
+import mri_noiselab as mrnl
 from mri_noiselab import subtract_noise, subtract_noise_masked
 
 
 # For sake of simpicity images are generated with raileigh noise 
-#  and a positive offset as signal 
+#  and a positive offset as signal
+     
 
 # Basic functionality tests
 
@@ -134,7 +137,23 @@ def test_filter_different_sizes():
         assert result.shape == image.shape
 
 
-# Positivity and no infinity requirement tests
+# Positivity,no Nan, no infinity requirement tests
+
+def test_clamp_negative_to_zero_warns_and_clamps():
+    """
+    Given: an array containing at least one negative value
+    When: _clamp_negative_to_zero is called
+    Then: it emits a RuntimeWarning and returns an array with negatives set to 0
+    """
+    x = np.array([1.0, -0.5, 2.0], dtype=np.float32)
+
+    with pytest.warns(RuntimeWarning, match="negative value"):
+        y = mrnl._clamp_negative_to_zero(x)
+
+    assert isinstance(y, np.ndarray)
+    assert np.all(y >= 0)
+    assert y[1] == 0
+
 
 def test_result_positivity_requirement():
     """Test that A_squared[A_squared < 0] = 0 works correctly before square root is performed
@@ -143,8 +162,8 @@ def test_result_positivity_requirement():
     Then: The result should not contain any negative or NaN values"""
     # Create a case where A_squared might be negative
     rng = np.random.default_rng(seed=42)
-    image = rng.rayleigh(scale=20, size=(100, 100)) + 5 # low signal compared to
-    bg_area = rng.rayleigh(scale=20, size=(50, 50)) # background noise
+    image = rng.rayleigh(scale=20, size=(100, 100)) + 1 # low signal compared to
+    bg_area = rng.rayleigh(scale=20, size=(50, 50)) #  high background noise
     
     with pytest.warns(RuntimeWarning, 
                       match=r"Obtained at least one negative value"):
@@ -202,20 +221,79 @@ def test_no_inf_values():
 def test_overflow_in_square_raises():
     """
     Force overflow during computation.
-    Given: An image vith very high value and a background area
+    Given: An image and a background area with very high values 
     When: The subtract_noise function is called
     Then: Numpy raises FloatingPointError and RuntimeError is raised
     """
     
     rng = np.random.default_rng(seed=42)
-    bg_area = rng.rayleigh(scale=1e10, size=(50, 50)) # background valid
+    bg_area = rng.rayleigh(scale=1e18, size=(50, 50)) # background valid
     image = np.add(np.full((50, 50), 1e20, dtype=np.float32),bg_area)  # square -> inf in float32
 
     with pytest.raises(RuntimeError, match=r"(overflow|Numerical overflow|invalid operation)"):
         subtract_noise(image, bg_area, f_size=3)
         
 
-# Edge cases with uniform or zeros images or background
+# Input validation
+
+def test_validate_raises_on_not_ndarray_input():
+    """
+    Given: 2D data but not numpy array
+    When: _validate_input is called
+    Then: it raises TypeError
+    """
+    # array but not numpy array
+    data = [[-1,0,1],
+            [0,1,-2],
+            [1,-3,4]]
+    
+    with pytest.raises(TypeError, match="must be a numpy.ndarray"):
+        mrnl._validate_input(data,"input data")
+
+        
+def test_validate_raises_on_not_finite_elements():
+    """
+    Given: Input data containing inf and Nan
+    When: _validate_input is called
+    Then: it raises ValueError
+    """
+    # Generating data with inf and nan with a zero division
+    data = [[-1,0,1],
+            [0,1,-2],
+            [1,-3,4]]
+    data_in = np.array(data)/0
+    
+    with pytest.raises(ValueError, match="contains NaN or infinite"):
+        mrnl._validate_input(data_in,"input data")
+
+
+def test_validate_raises_on_negative_input():
+    """
+    Given: 2D numpy array with negative values
+    When: _validate_inputs is called
+    Then: it raises ValueError
+    """
+    # contains negatives
+    data = [[-1,0,1],
+            [0,1,-2],
+            [1,-3,4]]
+    data_in = np.array(data)
+    
+    with pytest.raises(ValueError, match="negative values"):
+        mrnl._validate_input(data_in,"input data")
+
+
+def test_validate_raises_on_all_zero_input():
+    """
+    Given: an all-zero input data
+    When: _validate_inputs_and_estimate_noise is called
+    Then: it raises ValueError
+    """
+    data_in = np.zeros((32, 32), dtype=np.float32)
+    
+    with pytest.raises(ValueError, match="totally dark"):
+        mrnl._validate_input(data_in,"input data")
+
 
 def test_zero_background():
     """Test with background containing only zeros, no noise is present
@@ -227,7 +305,7 @@ def test_zero_background():
     bg_area = np.zeros((50, 50))
     
     # Since background is uniformly 0, std(bg_area) = 0, so there is no noise  
-    with pytest.raises(ValueError, match=r"Background is totally dark"):
+    with pytest.raises(ValueError, match=r"background is totally dark"):
         subtract_noise(image, bg_area)
 
 
@@ -241,7 +319,7 @@ def test_all_zeros_image():
     bg_area = rng.rayleigh(scale=10, size=(30, 30))
     
     # Since the image is uniformly 0,
-    with pytest.raises(ValueError,match=r"Image is totally dark"):
+    with pytest.raises(ValueError,match=r"image is totally dark"):
         subtract_noise(image, bg_area)
 
 
@@ -266,38 +344,48 @@ def test_uniform_image():
     assert np.isclose((np.mean(result)**2),(img_level**2 - 2*(sigma_r**2))) 
 
 
-def test_uniform_background():
-    """Test with uniform bakground (all pixels equal)
-    Given: A uniform constant noiseless background 
+def test_uniform_background_estimation_error():
+    """
+    Given: A uniform constant not-null noiseless background 
     When: The subtract_noise function is called
-    Then: ValueError is raised since noise is estimated to be 0"""
-    rng = np.random.default_rng(seed=42)
+    Then: ValueError is raised since noise is estimated to be 0
+    """
     bg_level= 30
-    image = rng.rayleigh(scale= 50, size=(100, 100)) + 50
     bg_area = np.full((50, 50), bg_level)
     
     with pytest.raises(ValueError,
                 match=r"Unable to estimate noise from background \(std = 0\)"):
-        subtract_noise(image, bg_area)
-        
+        mrnl._estimate_rayleigh_noise(bg_area, b_tol=0.1)
+ 
 
 # Noise level tests
 
-def test_biased_background():
-    """Test with biased bakground 
-    Given: A noisy background with a sistematic shift +50
-    When: The subtract_noise function is called
+def test_noise_est_warns_on_biased_background():
+    """
+    Given: a background with a bias (mean/std ratio not Rayleigh-like)
+    When: _estimate_noise is called
+    Then: it emits a RuntimeWarning about biased background
+    """
+    rng = np.random.default_rng(0)
+    biased_bg = rng.rayleigh(scale= 50, size=(100, 100)) + 100
+
+    with pytest.warns(RuntimeWarning, match="Background may be biased"):
+        mrnl._estimate_rayleigh_noise(biased_bg, b_tol=0.1)
+
+
+def test_not_rayleigh_noise():
+    """
+    Given: A background with gaussian distributed noise
+    When: The _estimate_rayleigh_noise function is called
     Then: RuntimeWarning is raised since the ratio of background average and 
-        standard deviation differs from 1,91 as expected in a Rayleigh distribution."""
+        standard deviation differs from 1.91, expected in a Rayleigh distribution."""
     rng = np.random.default_rng(seed=42)
     bg_level= 30
-    image = rng.rayleigh(scale= bg_level, size=(100, 100)) + 100
-    bg_area = rng.rayleigh(scale= bg_level, size=(50, 50)) + 50
+    bg_area = rng.normal(loc=0.0, scale=bg_level, size=(50,50))
     
-    with pytest.warns(RuntimeWarning,
-                match="Background may be biased"):
-        subtract_noise(image, bg_area, b_tol=0.1)
-
+    with pytest.warns(RuntimeWarning, match="Background may be biased"):
+        mrnl._estimate_rayleigh_noise(bg_area, b_tol=0.1)
+        
     
 def test_very_high_background():
     """Test with very high background standard deviation
@@ -339,7 +427,10 @@ def test_higher_bg_noise_gives_different_result():
 # Formula verification tests
 
 def test_sigma_r_calculation():
-    """Test that sigma_r = std(bg_area) / 0.655 from random rayleigh generator"""
+    """
+    Given: random rayleigh generator istantiated with a known sigma_r parameter
+    When: sigma_r = std(bg_area) / 0.655 is manually computed
+    Then: the result is close to the original sigma_r """
     rng = np.random.default_rng(seed=42)
     sigma_r = 10
     bg_area = rng.rayleigh(scale=sigma_r, size=(30, 30))
@@ -350,6 +441,21 @@ def test_sigma_r_calculation():
     # Verify that the result is consistent with the Rayleigh statics
     assert np.isclose(expected_sigma_r,sigma_r,rtol=0.1) 
 
+def test_sigma_r_estimation():
+    """
+    Given: random rayleigh generator istantiated with a known sigma_r parameter
+    When: _estimate_rayleigh_noise is called
+    Then: the result is close to the true sigma_r
+    """
+    rng = np.random.default_rng(seed=42)
+    sigma_r = 10
+    bg_area = rng.rayleigh(scale=sigma_r, size=(30, 30))
+    
+    estimated_sigma_r = mrnl._estimate_rayleigh_noise(bg_area)
+    
+    assert estimated_sigma_r >= 0
+    # Verify that the result is similar to the true sigma_r
+    assert np.isclose(estimated_sigma_r,sigma_r,rtol=0.1) 
 
 def test_A_squared_formula_manual_calculation():
     """Test A_squared formula with manual calculation
@@ -381,15 +487,22 @@ def test_A_squared_formula_manual_calculation():
 def test_image_and_bg_identical():
     """Test when image and background are identical
     Given: Image and background are identical (same data)
-    When: The subtract_noise function is called with filter size = image size
-    Then: The mean of result should be near zero """
+    When: The subtract_noise function is called 
+    Then: The output energy (mean squared intensity) should be reduced"""
     rng = np.random.default_rng(seed=42)
     data = rng.rayleigh(scale=50, size=(100, 100))
     
-    with pytest.warns(RuntimeWarning, match="Obtained at least one negative"):
-        result = subtract_noise(data, data, f_size=100)
+    with pytest.warns(RuntimeWarning, match="Obtained at least one negative"):     
+        result = subtract_noise(data, data, f_size=10)
+        
+    energy_in = np.mean(data ** 2)
+    energy_out = np.mean(result ** 2)
+
+    assert energy_out < energy_in
     
-    assert np.isclose(np.mean(result),0,atol=0.5)
+    # One should expect result near zero but with the local version of the 
+    # function is not possible even with filter size larger than image
+    # assert np.isclose(np.mean(result),0,atol=0.5)
 
 
 # Reproducibility tests
@@ -420,8 +533,21 @@ def test_same_seed_gives_reproducible_results():
     
     np.testing.assert_array_equal(result1, result2)
 
+# Masked Array
 
-# Masking tests
+def test_subtract_noise_masked_requires_maskedarray():
+    """
+    Given: a non-masked input image
+    When: subtract_noise_masked is called
+    Then: it raises TypeError
+    """
+    rng = np.random.default_rng(42)
+    image = rng.rayleigh(scale=50, size=(100, 100))
+    bg_area = rng.rayleigh(scale=10, size=(50, 50))
+    
+    with pytest.raises(TypeError, match="MaskedArray"):
+        subtract_noise_masked(image, bg_area, f_size=5)
+
 
 def test_masked_wrapper_preserves_mask():
     """

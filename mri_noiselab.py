@@ -10,19 +10,134 @@ import numpy as np
 from scipy.ndimage import uniform_filter
 import warnings
 
+_RAYLEIGH_MEAN_STD_RATIO = 1.91
+_RAYLEIGH_SIGMA_FACTOR = 0.655
+
+
+def _validate_input(data, name):
+    """Perform common validation checks on inputs.
+
+    This function validates that the input is a NumPy array,
+    contains only finite and non-negative values, and is not entirely zero.
+
+    Parameters
+    ----------
+    data : numpy.ndarray 
+        Input array to be validated.
+    name : str
+        Name of the input (used for informative error messages).
+
+
+    Raises
+    ------
+    TypeError
+        If the input is not a numpy.ndarray.
+    ValueError
+        If the input contains NaN or infinite values.
+    ValueError
+        If the input contains negative values.
+    ValueError
+        If the input is entirely zero.
+    """
+    
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f"{name} must be a numpy.ndarray")
+
+    if not np.all(np.isfinite(data)):
+        raise ValueError(f"{name} contains NaN or infinite values")
+
+    if np.any(data < 0):
+        raise ValueError(
+            f"""Found negative values in the {name}. \n
+            Possible solutions: clip or set an offset (equal for image and 
+            background before passing it to the function."""
+        )
+
+    if np.all(data == 0):
+        raise ValueError(f"{name} is totally dark, all pixels are 0.")
+
+    return
+
+
+def _estimate_rayleigh_noise(bg_area, b_tol=0.1):
+    """
+    Estimate the Rayleigh noise sigma parameter from background data.
+
+    The estimation is based on the standard deviation of the background
+    and assumes a uniformly Rayleigh-distributed noise model.
+
+    Parameters
+    ----------
+    bg_data : numpy.ndarray
+        Background pixel values containing noise only. Must be non-negative
+        and contain at least some variability.
+    b_tol : float
+        Absolute tolerance used to assess deviation of the background
+        mean-to-standard-deviation ratio from the expected Rayleigh value.
+
+    Returns
+    -------
+    sigma_r : float
+        Estimated Rayleigh distribution sigma parameter.
+
+    Raises
+    ------
+    ValueError
+        If the background standard deviation is zero (i.euniform image).
+    
+    Warns
+    ------
+    RuntimeWarning
+        If the background mean-to-standard-deviation ratio deviates from the
+        expected Rayleigh value within the given tolerance.
+    
+    """
+    # background bias check 
+    sd_bg = float(np.std(bg_area))
+    ave_bg = float(np.mean(bg_area))
+
+    if sd_bg == 0:
+        raise ValueError("Unable to estimate noise from background (std = 0).")
+
+    ratio = ave_bg / sd_bg
+
+    if not np.isclose(ratio, _RAYLEIGH_MEAN_STD_RATIO, atol=b_tol):
+        warnings.warn(
+            f"Background may be biased: ave/std = {ratio:.3f}, expected ~{_RAYLEIGH_MEAN_STD_RATIO} ± {b_tol}",
+            RuntimeWarning
+        )
+    # estimate sigma_r
+    return sd_bg / _RAYLEIGH_SIGMA_FACTOR
+
+
+def _clamp_negative_to_zero(x):
+    """
+    Clamp negative values to 0 to avoid invalid sqrt.
+    
+    Parameters
+    ----------
+    x : numpy.ndarray 
+         Magnitude-corrected image to be clamped to non-negative values.
+    
+    Returns
+    -------
+    x : np.ndarray of non-negative values
+        Magnitude-corrected image, clamped to non-negative values.
+    """
+    if np.any(x < 0):
+        warnings.warn(
+            "Obtained at least one negative value; changed to zero before final square root.",
+            RuntimeWarning
+        )
+        x[x < 0] = 0
+    
+    return x                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+
+
 def subtract_noise(image, bg_area, b_tol=0.1, f_size=10, np_type=np.float32):
     """
-    Performs pixel-wise noise reduction on magnitude images with Rayleigh noise.
- 
-    This function reduces Rayleigh-distributed noise from magnitude images
-    (e.g., MRI magnitude images) by estimating the noise level from a background
-    region and applying a correction based on the Rician noise model. The algorithm
-    computes corrected pixel intensities using the formula:
- 
-        A = sqrt(m_ave² + m_sd² - 2*sigma_r²)
- 
-    where sigma_r is the estimated Rayleigh noise parameter derived from the
-    background standard deviation.
+    Performs pixel-wise noise reduction on magnitude images affected by 
+    Rayleigh noise, estimating it from a background region.
  
     Parameters
     ----------
@@ -72,90 +187,46 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10, np_type=np.float32):
     RuntimeWarning
         If ratio of background average and standard deviation differs from that 
         expected in a Rayleigh distribution.
-    
-
     """
-    # Checks on inputs:
-    
-    if np.any(image < 0):
-        raise ValueError("""Found negative values in the image.\n
-                         Possible solutions: clip or set an offset before 
-                         passing it to the function.""")
-    
-    if np.any(bg_area < 0):
-        raise ValueError("""Found negative values in the background.\n
-                         Possible solutions: clip or set an offset before 
-                         passing it to the function.""")
-    
-    if np.all(bg_area == 0):
-        raise ValueError("Background is totally dark, all pixel are 0")
-        
-    if np.all(image == 0):
-        raise ValueError("Image is totally dark, all pixel are 0")
-    
-    sd_bg = np.std(bg_area)
-    ave_bg = np.mean(bg_area)   
-
-    if sd_bg == 0:
-        raise ValueError("Unable to estimate noise from background (std = 0)")
-    
-    ratio = ave_bg / sd_bg
-
-    if not np.isclose(ratio, 1.91, atol=b_tol):
-        warnings.warn(
-            f"Background may be biased: ave/std = {ratio:.3f},expected ~1.91 ± {b_tol}",
-            RuntimeWarning)
-    
-    sd_img = np.std(image)
-       
-    if sd_img == 0:
-        warnings.warn("No noise found in image (std = 0)", RuntimeWarning)
-   
-    
-    # Computation:
-    try:    
-        with np.errstate(over='raise', invalid='raise', divide='raise', under='raise'):
-            # 0) cast to float
-            image = np.astype(image,np_type)
-            bg_area = np.astype(bg_area, np_type)
+    # Inputs checks
+    _validate_input(image, "image")
+    _validate_input(bg_area, "background")
+           
+    try:
+        with np.errstate(over='raise',invalid='raise',divide='raise',under='raise'):
             
-            # 1) image local mean  (i.e. magnitude average)
+            # Numpy array cast 
+            image = image.astype(np_type, copy=False)
+            bg_area = bg_area.astype(np_type, copy=False)
+            
+            # background global Rayleigh distribution sigma parameter
+            sigma_r = _estimate_rayleigh_noise(bg_area, b_tol=b_tol)
+            
+            # check image noise presence (warning only)
+            if float(np.std(image)) == 0:
+                warnings.warn("No noise found in image (std = 0).", RuntimeWarning)
+            
             m_ave = uniform_filter(image, size=f_size) #image local average magnitude
-            m_ave_squared = np.square(m_ave) #square of local average magnitude
-            
-            # 2) image local variance (i.e. squared standard deviation) 
-            squared_image = np.square(image) #squared image
-            squares_mean = uniform_filter(squared_image, size=f_size) #local mean of the squared image 
-            m_sd_squared = np.subtract(squares_mean,m_ave_squared) #local variance of the image
-            
-            # 3) background global Rayleigh distribution's sigma parameter
-            m_sd_bg = np.full(np.shape(image), sd_bg) #background standard deviation
-            sigma_r = np.divide(m_sd_bg, 0.655) #Rayleigh sigma parameter estimation 
-            squared_sigma_r = np.square(sigma_r)
-            
-            # 4) magnitude correction
-            
-            A_squared = m_ave_squared + m_sd_squared - 2*squared_sigma_r
-            
-            # positivity requirement to avoid Nan
-            if np.any(A_squared < 0):
-                warnings.warn("""Obtained at least one negative value,
-                              changed into zero before final square root.""", RuntimeWarning)
-                A_squared[A_squared < 0] = 0 
-            
-            A = np.sqrt(A_squared)
-            
-    
-    except FloatingPointError as e:     
-        raise RuntimeError(
-            """Numerical overflow/invalid operation during noise subtraction,
-            Suggestion:In case of overflow try changing np_type to np.float64 
-            or reduce by a factor both inputs and reapply the conversion to outputs"""
-        ) from e #instead of print(str(e))
-               
-        
-    return A
+            m_ave_sq = np.square(m_ave)
+            mean_sq = uniform_filter(np.square(image), size=f_size) #squared image local average magnitude
+            m_var = mean_sq - m_ave_sq #local variance of the image
+                        
+            # Magnitude correction
+                # NB sigma_r is still scalar: numpy broadcasting is more efficent than a full np.array
+            A_squared = m_ave_sq + m_var - 2 * (sigma_r **2) 
+                # positivity requirement to avoid Nan
+            A_squared = _clamp_negative_to_zero(A_squared)
 
+            A = np.sqrt(A_squared)
+
+    except FloatingPointError as e:
+        raise RuntimeError(
+            """Numerical overflow/invalid operation during noise subtraction. \n 
+            To circuvent overflow try np_type=np.float64 
+            or scale inputs down and rescale outputs."""
+        ) from e #instead of print(str(e))
+
+    return A
 
 
 def subtract_noise_masked(image_ma, bg_ma, *, fill_value=0.0, return_masked=True, **kwargs):
@@ -219,4 +290,3 @@ def subtract_noise_masked(image_ma, bg_ma, *, fill_value=0.0, return_masked=True
     if return_masked:
         return np.ma.array(output, mask=np.ma.getmaskarray(image_ma), copy=False)
     return output
-
