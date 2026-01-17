@@ -112,7 +112,7 @@ def _estimate_rayleigh_noise(bg_area, b_tol=0.1):
 
 def _clamp_negative_to_zero(x):
     """
-    Clamp negative values to 0 to avoid invalid sqrt.
+    Count and clamp negative values to 0 to avoid invalid sqrt.
     
     Parameters
     ----------
@@ -124,9 +124,11 @@ def _clamp_negative_to_zero(x):
     x : np.ndarray of non-negative values
         Magnitude-corrected image, clamped to non-negative values.
     """
-    if np.any(x < 0):
+    n_neg = np.count_nonzero(x < 0)
+    
+    if n_neg > 0 :
         warnings.warn(
-            "Obtained at least one negative value; changed to zero before final square root.",
+            f"{(100 * n_neg / x.size):.2f}% negative values set to zero before square root.",
             RuntimeWarning
         )
         x[x < 0] = 0
@@ -198,7 +200,7 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10, np_type=np.float32):
             # Numpy array cast 
             image = image.astype(np_type, copy=False)
             bg_area = bg_area.astype(np_type, copy=False)
-            
+                        
             # background global Rayleigh distribution sigma parameter
             sigma_r = _estimate_rayleigh_noise(bg_area, b_tol=b_tol)
             
@@ -207,8 +209,8 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10, np_type=np.float32):
                 warnings.warn("No noise found in image (std = 0).", RuntimeWarning)
             
             m_ave = uniform_filter(image, size=f_size) #image local average magnitude
-            m_ave_sq = np.square(m_ave)
-            mean_sq = uniform_filter(np.square(image), size=f_size) #squared image local average magnitude
+            m_ave_sq = np.square(m_ave) #squared local average of the image
+            mean_sq = uniform_filter(np.square(image), size=f_size) #local average of squared image
             m_var = mean_sq - m_ave_sq #local variance of the image
                         
             # Magnitude correction
@@ -220,16 +222,15 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10, np_type=np.float32):
             A = np.sqrt(A_squared)
 
     except FloatingPointError as e:
-        raise RuntimeError(
-            """Numerical overflow/invalid operation during noise subtraction. \n 
-            To circuvent overflow try np_type=np.float64 
-            or scale inputs down and rescale outputs."""
-        ) from e #instead of print(str(e))
+        raise RuntimeError(str(e) + " during noise subtraction.\n" + 
+            "Tip: to circuvent overflow try np_type=np.float64 or scale inputs down and rescale outputs."
+        )
 
     return A
 
 
 def subtract_noise_masked(image_ma, bg_ma, *, fill_value=0.0, return_masked=True, **kwargs):
+    # After * no positional argument
     """
     Apply Rayleigh noise subtraction to a masked image.
 

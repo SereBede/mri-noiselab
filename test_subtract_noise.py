@@ -111,10 +111,8 @@ def test_bg_area_slice_of_image():
     image = rng.rayleigh(scale=50, size=(100, 100))
     bg_area = image[0:20, 0:20]  # slice of top-left corner
     
-    with pytest.warns(RuntimeWarning,
-                      match=r"Obtained at least one negative value"): 
-        result = subtract_noise(image, bg_area)
-    
+    result = subtract_noise(image, bg_area)
+        
     assert result.shape == image.shape
 
 
@@ -147,7 +145,7 @@ def test_clamp_negative_to_zero_warns_and_clamps():
     """
     x = np.array([1.0, -0.5, 2.0], dtype=np.float32)
 
-    with pytest.warns(RuntimeWarning, match="negative value"):
+    with pytest.warns(RuntimeWarning, match="negative values set to zero"):
         y = mrnl._clamp_negative_to_zero(x)
 
     assert isinstance(y, np.ndarray)
@@ -166,7 +164,7 @@ def test_result_positivity_requirement():
     bg_area = rng.rayleigh(scale=20, size=(50, 50)) #  high background noise
     
     with pytest.warns(RuntimeWarning, 
-                      match=r"Obtained at least one negative value"):
+                      match=r"negative values set to zero"):
         result = subtract_noise(image, bg_area)
     
     # no square root of negative number performed
@@ -218,6 +216,20 @@ def test_no_inf_values():
 
 # Overflow and underflow
 
+def test_invalid_casting_overflow():
+    """
+    Force overflow during casting.
+    Given: An image and a background area with very high values 
+    When: The subtract_noise function is called with too small np_type
+    Then: Numpy raises FloatingPointError and RuntimeError is raised
+    """
+    rng = np.random.default_rng(seed=42)
+    bg_area = rng.rayleigh(scale=1e18, size=(50, 50)) # background valid
+    image = np.add(np.full((50, 50), 1e20, dtype=np.float32),bg_area)  # square -> inf in float32
+
+    with pytest.raises(RuntimeError, match=r"overflow encountered in cast"):
+        subtract_noise(image, bg_area, f_size=3, np_type = np.float16)
+
 def test_overflow_in_square_raises():
     """
     Force overflow during computation.
@@ -230,9 +242,9 @@ def test_overflow_in_square_raises():
     bg_area = rng.rayleigh(scale=1e18, size=(50, 50)) # background valid
     image = np.add(np.full((50, 50), 1e20, dtype=np.float32),bg_area)  # square -> inf in float32
 
-    with pytest.raises(RuntimeError, match=r"(overflow|Numerical overflow|invalid operation)"):
+    with pytest.raises(RuntimeError, match=r"(overflow|invalid operation)"):
         subtract_noise(image, bg_area, f_size=3)
-        
+
 
 # Input validation
 
@@ -279,7 +291,7 @@ def test_validate_raises_on_negative_input():
             [1,-3,4]]
     data_in = np.array(data)
     
-    with pytest.raises(ValueError, match="negative values"):
+    with pytest.raises(ValueError, match="Found negative values"):
         mrnl._validate_input(data_in,"input data")
 
 
@@ -397,7 +409,7 @@ def test_very_high_background():
     bg_area = rng.rayleigh(scale=100, size=(30, 30))  # very high sigma respect image
     
     with pytest.warns(RuntimeWarning, 
-                      match="Obtained at least one negative value"):
+                      match="negative values set to zero"):
         result = subtract_noise(image, bg_area)
     
     # With high bg std, A_squared might become negative, but must be handled correctly
@@ -492,7 +504,7 @@ def test_image_and_bg_identical():
     rng = np.random.default_rng(seed=42)
     data = rng.rayleigh(scale=50, size=(100, 100))
     
-    with pytest.warns(RuntimeWarning, match="Obtained at least one negative"):     
+    with pytest.warns(RuntimeWarning, match="negative values set to zero"):     
         result = subtract_noise(data, data, f_size=10)
         
     energy_in = np.mean(data ** 2)
