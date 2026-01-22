@@ -5,8 +5,8 @@ import mri_noiselab as mrnl
 from mri_noiselab import subtract_noise, subtract_noise_masked
 
 
-# For sake of simpicity images are generated with raileigh noise 
-#  and a positive offset as signal
+# For sake of simpicity images are generated with rayleigh noise 
+#  and a positive offset as signal insted of a quadrature sum
      
 
 # Basic functionality tests

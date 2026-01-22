@@ -1,68 +1,26 @@
 # mri-noiselab
 
-## Description
 A python library that estimates and reduces noise in magnetic resonance images.
 
-This operation is particularly useful in quantitative MRI applications
-
-The subtract_noise function reduces Rayleigh-distributed noise in images 
-(e.g., MRI magnitude images) by estimating the noise level from a background
-region. Cleaning is performed locally and provides also numpy masked support.
+mri-noiselab` is a Python library for estimating from a background region and 
+reducing Rayleigh-distributed noise in magnetic resonance (MRI) magnitude images, with support for masked data.
+Useful in image preprocessing for quantitative MRI studies.
 
 ## Installation
-Clone the repository:
-From terminal inside your workig directory or your virtual env:
-```
-    git clone https://github.com/SereBede/mri-noiselab.git
-```
-Then inside your code:
-```python
-    import mri_noiselab
-```
+
+### From source
+
+Clone the repository and install it.
+...
 Make sure the required dependencies are installed (see below).
 
-## Requirements
+## Dependencies
 
-The module requires:
  - numpy
- - warnings
- - uniform_filter from scipy.ndimage
+ - scipy
 
 ## Documentation
-
-###Basic Usage
-⚠️ Important
-Inputs must contain finite, non-negative values.
-Background regions must contain noise only (no signal).
-
-```python
-import numpy as np
-from mri_noiselab import subtract_noise
-
-# example image and background
-image = np.random.rayleigh(scale=20, size=(100, 100)) + 50
-background = np.random.rayleigh(scale=20, size=(30, 30))
-
-cleaned = subtract_noise(image, background, f_size=10)
-```
-
-Masked Array Support
-
-The library supports NumPy masked arrays via a dedicated wrapper:
-
-```python
-import numpy as np
-from mri_noiselab import subtract_noise_masked
-
-image_ma = np.ma.masked_array(image, mask=image < 10)
-bg_ma = np.ma.masked_array(background, mask=background < 5)
-
-cleaned_ma = subtract_noise_masked(image_ma, bg_ma)
-```
-
-Masked pixels are excluded from validation and restored in the output.
-
-### Examples
+Full documentatio is provided at the page...
 
 See the following examples in this same github repository:
  - example_uniform_image.py
@@ -71,12 +29,57 @@ See the following examples in this same github repository:
  
 And how to guides:
  -  howto_clean_dicom working on the MR_femur_head.dcm file
-  
- 
-## License
 
-## Developer
-This python module is p
+### Basic Usage
+
+Important
+Inputs must contain finite, non-negative values, numpy array.
+Background regions must contain noise only (no signal).
+
+```python
+import pydicom
+import numpy as np
+from mri_noiselab import subtract_noise
+
+ds = pydicom.dcmread("example_mri.dcm")
+image = ds.pixel_array.astype(np.float32)
+
+# Select a background region (noise only)
+background = image[0:50, 0:50]
+
+corrected = subtract_noise(image, background)
+```
+
+
+### Masked Array Support
+
+The library supports NumPy masked arrays via dedicated wrapper 
+:func:subtract_noise_masked
+
+```python
+import numpy as np
+from mri_noiselab import subtract_noise_masked
+
+ds = pydicom.dcmread("example_mri.dcm")
+image = ds.pixel_array.astype(np.float32)
+
+threshold = 10
+
+image_ma = np.ma.masked_array(image, mask = image >= threshold)
+bg_ma = np.ma.masked_array(background, mask = background < threshold)
+
+cleaned_ma = subtract_noise_masked(image_ma, bg_ma)
+```
+
+Masked pixels are excluded from validation and restored in the output.
+
+## Author
+Serena Bedeschi
+email serena.bedeschi@studio.unibo.it
+github SereBede
+
+## License
+...
 
 ## Notes
 
@@ -89,18 +92,18 @@ real and complex components of NMR signal.
 
 The noise assumes a Rayleigh distribution in the magnitude image,
 which is characteristic of MRI and other coherent imaging systems where
-complex or bivariate data is converted to magnitude. 
+complex or bivariate data is converted to magnitude by quadrature sum. 
 The Rayleigh distribution parameter sigma_r is estimated from background as:
 
     sigma_r = std(bg_area) / 0.655
 
 where 0.655 ≈ sqrt(2/π) relates the Rayleigh distribution's standard
-deviation to its scale parameter.
+deviation to its scale parameter (sigma).
 
 By estimation of noise level it is possible to subtract it and so to better
 approximate A, the true value of signal.
 
-The relation between true signal A and the measured 
+The relationship between true signal A and the measured 
 magnitude average and standard deviation follows the equation:
     
     A^2 = m_ave^2 + m_sd^2 - 2 * sigma_r^2
@@ -113,10 +116,12 @@ Reference:
 R. Mark Henkelman, "Measument of signal intensities in the presence of 
 noise in MR images", published in 1985.
 
+
 **Cleaning Algorithm Steps**
 
 1. Validate inputs (non-zero or negative images, valid background statistics)
-2. Compute image statistics: mean (m_ave) and std (m_sd)
+2. Compute image local statistics: mean (m_ave) and std (m_sd)
+    (already squared for computation convenience)
 3. Estimate Rayleigh noise parameter from background: sigma_r
 4. Calculate corrected magnitude squared: A² = m_ave² + m_sd² - 2*sigma_r²
 5. Apply positivity constraint: A²[A² < 0] = 0
