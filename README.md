@@ -79,7 +79,12 @@ email serena.bedeschi@studio.unibo.it
 github SereBede
 
 ## License
-...
+This project is licensed under the Creative Commons
+Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
+for educational and research purposes. 
+
+Commercial use is not permitted without explicit permission
+from the author.
 
 ## Notes
 
