@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mri-noiselab"
+version = "0.1.0"
+description = "Rayleigh noise estimation and subtraction for MRI magnitude images."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "scipy",
+]
+authors = [
+  { name = "Serena Bedeschi" }
+]
+license = { text = "CC BY-NC 4.0" }
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+py-modules = ["mri_noiselab"]

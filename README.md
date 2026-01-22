@@ -2,7 +2,7 @@
 
 A python library that estimates and reduces noise in magnetic resonance images.
 
-mri-noiselab` is a Python library for estimating from a background region and 
+mri-noiselab is a Python library for estimating from a background region and 
 reducing Rayleigh-distributed noise in magnetic resonance (MRI) magnitude images, with support for masked data.
 Useful in image preprocessing for quantitative MRI studies.
 
@@ -11,13 +11,28 @@ Useful in image preprocessing for quantitative MRI studies.
 ### From source
 
 Clone the repository and install it.
-...
-Make sure the required dependencies are installed (see below).
+```bash
+    git clone https://github.com/serebede/mri-noiselab.git
+    cd mri-noiselab
+    pip install .
+```
+or directly 
+```bash
+    pip install git+https://github.com/serebede/mri-noiselab.git
+```
+then inside you python code import the module
+ (pay attention to the underscore)
+
+```python
+    import mri_noiselab
+```
 
 ## Dependencies
 
  - numpy
  - scipy
+ 
+If not present automatically installed by pip
 
 ## Documentation
 Full documentatio is provided at the page...
@@ -75,8 +90,10 @@ Masked pixels are excluded from validation and restored in the output.
 
 ## Author
 Serena Bedeschi
-email serena.bedeschi@studio.unibo.it
-github SereBede
+
+email: serena.bedeschi@studio.unibo.it
+
+github: SereBede
 
 ## License
 This project is licensed under the Creative Commons
@@ -85,6 +102,20 @@ for educational and research purposes.
 
 Commercial use is not permitted without explicit permission
 from the author.
+
+## Contributing
+
+Suggestions, bug reports, and improvements are welcome.
+
+If you want to contribute developing the module:
+1. Fork the repository
+2. Create a feature branch
+3. Add tests where appropriate
+4. Submit a pull request with a clear description
+
+Please ensure that the code follows the existing style
+and that tests pass before submitting.
+
 
 ## Notes
 
