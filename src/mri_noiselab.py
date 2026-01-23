@@ -8,23 +8,29 @@ approach derived from the Rician noise model.
 
 The public functions are:
 
-- :func:`subtract_noise`
+- :func: subtract_noise
 - :func:`subtract_noise_masked`
 
 The module is designed for research and educational purposes.
 
 """
+
 import numpy as np
 from scipy.ndimage import uniform_filter
 import warnings
+from typing import Any
+import numpy.typing as npt
 
+#Real number array not bool or complex
+NDArrayReal = npt.NDArray[np.floating[Any] | np.integer[Any] | np.unsignedinteger[Any]]
+MaskedNDArray = np.ma.MaskedArray
 
 # these factors are determined by the Raileygh probability distribution 
 _RAYLEIGH_MEAN_STD_RATIO = 1.91
 _RAYLEIGH_SIGMA_FACTOR = 0.655
 
 
-def _validate_input(data, name):
+def _validate_input(data:NDArrayReal, name:str) -> None:
     """Perform common validation checks on inputs.
 
     This function validates that the input is a NumPy array (not masked),
@@ -71,7 +77,7 @@ def _validate_input(data, name):
     return
 
 
-def _estimate_rayleigh_noise(bg_area, b_tol=0.1):
+def _estimate_rayleigh_noise(bg_area:NDArrayReal, b_tol:float = 0.1) -> float:
     """
     Estimate the Rayleigh noise sigma parameter from background data.
 
@@ -125,7 +131,7 @@ def _estimate_rayleigh_noise(bg_area, b_tol=0.1):
     return sd_bg / _RAYLEIGH_SIGMA_FACTOR
 
 
-def _clamp_negative_to_zero(x):
+def _clamp_negative_to_zero(x:NDArrayReal) -> NDArrayReal:
     """
     Clamp negative values to 0 to avoid invalid square root.
     
@@ -162,7 +168,13 @@ def _clamp_negative_to_zero(x):
     return x                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
 
 
-def subtract_noise(image, bg_area, b_tol=0.1, f_size=10, np_type=np.float32):
+def subtract_noise(
+        image:NDArrayReal,
+        bg_area:NDArrayReal, 
+        b_tol:float = 0.1, 
+        f_size:int = 10, 
+        np_type:npt.DTypeLike = np.float32
+        ) -> NDArrayReal:
     """
     Perform pixel-wise Rayleigh noise reduction on MRI magnitude images.
 
@@ -291,8 +303,15 @@ def subtract_noise(image, bg_area, b_tol=0.1, f_size=10, np_type=np.float32):
     return A
 
 
-def subtract_noise_masked(image_ma, bg_ma, *, fill_value=0.0, return_masked=True, **kwargs):
-    # After * no positional argument
+def subtract_noise_masked(
+        image_ma: MaskedNDArray,
+        bg_ma: MaskedNDArray | NDArrayReal,
+        *, # After * no positional argument
+        fill_value:float = 0.0,
+        return_masked:bool = True,
+        **kwargs
+        ) -> (MaskedNDArray | NDArrayReal):
+    
     """
     Apply Rayleigh noise subtraction to a masked image.
 
