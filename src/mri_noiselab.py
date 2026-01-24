@@ -8,8 +8,8 @@ approach derived from the Rician noise model.
 
 The public functions are:
 
-- :func: subtract_noise
-- :func:`subtract_noise_masked`
+- subtract_noise
+- subtract_noise_masked
 
 The module is designed for research and educational purposes.
 
@@ -151,7 +151,7 @@ def _clamp_negative_to_zero(x:NDArrayReal) -> NDArrayReal:
     -----
     RuntimeWarning
         If negative values are found, a warning reports the percentage of
-+        values clamped to zero.
+        values clamped to zero.
 
     """
     n_neg = np.count_nonzero(x < 0)
@@ -184,16 +184,16 @@ def subtract_noise(
  
     Parameters
     ----------
-    image : numpy.ndarray
-         Input magnitude image. Values must be finite and non-negative.
+    image : numpy.ndarray.
+        Input magnitude image. Values must be finite and non-negative.
         Can be N-dimensional as biomedical images.
     bg_area : numpy.ndarray 
-         Background region containing only noise (no signal).
-         Values must be finite and non-negative.
+        Background region containing only noise (no signal).
+        Values must be finite and non-negative.
     b_tol : float, optional
-         Absolute tolerance used to assess deviation of the background
-         mean-to-standard-deviation ratio from 1.91, the expected Rayleigh value.
-         Default is 0.1
+        Absolute tolerance used to assess deviation of the background
+        mean-to-standard-deviation ratio from 1.91, the expected Rayleigh value.
+        Default is 0.1
     f_size : int, optional
         Size of the local window (in pixel) used to compute mean and variance.
         Default is 10.
@@ -203,31 +203,31 @@ def subtract_noise(
  
     Returns
     -------
-     A : numpy.ndarray
-         Noise-corrected image with the same shape as `image`.
-         Output values are non-negative.
+    A : numpy.ndarray
+        Noise-corrected image with the same shape as `image`.
+        Output values are non-negative.
  
     Raises
     ------
     TypeError
-         If the input is not a numpy.ndarray (masked arrays must be handled via subtract_noise_masked)
+        If the input is not a numpy.ndarray (masked arrays must be handled via subtract_noise_masked)
     ValueError
-         If background region has negative values.
+        If background region has negative values.
     ValueError
-         If input image has negative values.
+        If input image has negative values.
     ValueError
-         If background region is entirely zero (all pixels == 0).
+        If background region is entirely zero (all pixels == 0).
     ValueError
-         If input image is entirely zero (all pixels == 0).
+        If input image is entirely zero (all pixels == 0).
     ValueError
-         If background has zero standard deviation (noiseless values).
+        If background has zero standard deviation (noiseless values).
     RuntimeError
-         If numpy encounters overflow, invalid, zero division, underflow.
+        If numpy encounters overflow, invalid, zero division, underflow.
  
     Warns
     -----
     RuntimeWarning
-         If image standard deviation is zero (uniform noisless image).
+        If image standard deviation is zero (uniform noisless image).
     RuntimeWarning
         If ratio of background average and standard deviation differs from 1.91, 
         as expected in a Rayleigh distribution.
@@ -237,30 +237,30 @@ def subtract_noise(
     Notes
     -----
     - The algorithm assumes spatially stationary Rayleigh noise.
-    - Masked arrays must be handled via :func:subtract_noise_masked
+    - Masked arrays must be handled via :func:'subtract_noise_masked'
     - Negative input values are not supported; they must be masked or removed
       prior to calling this function.
     - Background area can be a slice of the input image or a separate array.
-    - Background size and shape may differ from `image`.
-    - The choice of `f_size` affects the trade-off between noise reduction and
+    - Background size and shape may differ from image.
+    - The choice of 'f_size' affects the trade-off between noise reduction and
       spatial resolution.
       
     Examples
     --------
     Load an MRI magnitude image from a DICOM file, estimate noise from a
-    background region, and apply noise correction:
+    background region, and apply noise correction::
     
-    import pydicom
-    import numpy as np
-    from mri_noiselab import subtract_noise
-    
-    ds = pydicom.dcmread("example_mri.dcm")
-    image = ds.pixel_array.astype(np.float32)
-    
-    # Select a background region (noise only)
-    background = image[0:50, 0:50]
-    
-    corrected = subtract_noise(image, background)
+        import pydicom
+        import numpy as np
+        from mri_noiselab import subtract_noise
+        
+        ds = pydicom.dcmread("example_mri.dcm")
+        image = ds.pixel_array.astype(np.float32)
+        
+        # Select a background region (noise only)
+        background = image[0:50, 0:50]
+        
+        corrected = subtract_noise(image, background)
     
     """
     # NOTE invalid pixel can be masked with subtract_noise_masked to pass through input checks
@@ -361,21 +361,21 @@ def subtract_noise_masked(
     Examples
     --------
     Apply noise correction to a DICOM image using a masked array to exclude
-    invalid pixels:
+    invalid pixels::
     
-    import pydicom
-    import numpy as np
-    import numpy.ma as ma
-    from mri_noiselab import subtract_noise_masked
-    
-    ds = pydicom.dcmread("example_mri.dcm")  
-    image = ds.pixel_array.astype(np.float32)
-    
-    mask = image <= 0
-    image_ma = ma.masked_array(image, mask=mask)
-    
-    background = image[0:50, 0:50]
-    corrected = subtract_noise_masked(image_ma, background)
+        import pydicom
+        import numpy as np
+        import numpy.ma as ma
+        from mri_noiselab import subtract_noise_masked
+        
+        ds = pydicom.dcmread("example_mri.dcm")  
+        image = ds.pixel_array.astype(np.float32)
+        
+        mask = image <= 0
+        image_ma = ma.masked_array(image, mask=mask)
+        
+        background = image[0:50, 0:50]
+        corrected = subtract_noise_masked(image_ma, background)
     
     """
 
