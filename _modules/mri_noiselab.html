@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mri_noiselab &#8212; mri_noiselab 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for mri_noiselab</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Rayleigh noise estimation and subtraction for MRI magnitude images.</span>
+
+<span class="sd">This module provides utilities to estimate and remove Rayleigh-distributed</span>
+<span class="sd">noise from magnetic resonance (MRI) magnitude images using a background-based</span>
+<span class="sd">approach derived from the Rician noise model.</span>
+
+<span class="sd">The public functions are:</span>
+
+<span class="sd">- subtract_noise</span>
+<span class="sd">- subtract_noise_masked</span>
+
+<span class="sd">The module is designed for research and educational purposes.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.ndimage</span><span class="w"> </span><span class="kn">import</span> <span class="n">uniform_filter</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">npt</span>
+
+<span class="c1">#Real number array not bool or complex</span>
+<span class="n">NDArrayReal</span> <span class="o">=</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">unsignedinteger</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span>
+<span class="n">MaskedNDArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span>
+
+<span class="c1"># these factors are determined by the Raileygh probability distribution </span>
+<span class="n">_RAYLEIGH_MEAN_STD_RATIO</span> <span class="o">=</span> <span class="mf">1.91</span>
+<span class="n">_RAYLEIGH_SIGMA_FACTOR</span> <span class="o">=</span> <span class="mf">0.655</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_input</span><span class="p">(</span><span class="n">data</span><span class="p">:</span><span class="n">NDArrayReal</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform common validation checks on inputs.</span>
+
+<span class="sd">    This function validates that the input is a NumPy array (not masked),</span>
+<span class="sd">    contains only finite and non-negative values, and is not entirely zero.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : numpy.ndarray </span>
+<span class="sd">        Input array to be validated.</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Name of the input (used for informative error messages).</span>
+
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        If the input is not a numpy.ndarray.</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If the input contains NaN or infinite values.</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If the input contains negative values.</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If the input is entirely zero.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># masked array handled with subtract_noise_masked</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span> 
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be a numpy.ndarray&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span> 
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> contains NaN or infinite values, </span>
+<span class="s2">            Possible solution: mask them and use subtract_noise_masked.&quot;&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span> <span class="c1"># negative values handling not implemented in cleaning</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Found negative values in the </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">. </span><span class="se">\n</span>
+<span class="s2">            Possible solutions: clip or mask or set an offset (equal for image </span>
+<span class="s2">            and background) before passing it to the function.&quot;&quot;&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">data</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span> <span class="c1"># nothing to be done</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is totally dark, all pixels are 0.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_estimate_rayleigh_noise</span><span class="p">(</span><span class="n">bg_area</span><span class="p">:</span><span class="n">NDArrayReal</span><span class="p">,</span> <span class="n">b_tol</span><span class="p">:</span><span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Estimate the Rayleigh noise sigma parameter from background data.</span>
+
+<span class="sd">    The estimation is based on the standard deviation of the background</span>
+<span class="sd">    and assumes a uniformly Rayleigh-distributed noise model.</span>
+<span class="sd">    Before computation bias presence and null standard deviation are checked. </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bg_area : numpy.ndarray</span>
+<span class="sd">        Background pixel values containing noise only. Must be non-negative</span>
+<span class="sd">        and contain at least some variability.</span>
+<span class="sd">    b_tol : float</span>
+<span class="sd">        Absolute tolerance used to assess deviation of the background</span>
+<span class="sd">        mean-to-standard-deviation ratio from 1.91, the expected Rayleigh value.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    sigma_r : float</span>
+<span class="sd">        Estimated Rayleigh distribution sigma parameter.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If the background standard deviation is zero (i.e uniform image).</span>
+<span class="sd">    </span>
+<span class="sd">    Warns</span>
+<span class="sd">    -----</span>
+<span class="sd">    RuntimeWarning</span>
+<span class="sd">        If the background mean-to-standard-deviation ratio deviates from the</span>
+<span class="sd">        expected Rayleigh distribution value within the given tolerance.</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+     
+    <span class="n">sd_bg</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">bg_area</span><span class="p">))</span>
+    <span class="n">ave_bg</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">bg_area</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">sd_bg</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># inform the user and avoid zero division</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unable to estimate noise from background (std = 0).&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># anomalies in this ratio may be syntoms of bias, better tell the user</span>
+    <span class="n">ratio</span> <span class="o">=</span> <span class="n">ave_bg</span> <span class="o">/</span> <span class="n">sd_bg</span>  
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">ratio</span><span class="p">,</span> <span class="n">_RAYLEIGH_MEAN_STD_RATIO</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">b_tol</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Background may be biased: ave/std = </span><span class="si">{</span><span class="n">ratio</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, </span>
+<span class="s2">            expected ~</span><span class="si">{</span><span class="n">_RAYLEIGH_MEAN_STD_RATIO</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">b_tol</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="ne">RuntimeWarning</span>
+        <span class="p">)</span>
+    <span class="c1"># estimate sigma_r </span>
+    <span class="k">return</span> <span class="n">sd_bg</span> <span class="o">/</span> <span class="n">_RAYLEIGH_SIGMA_FACTOR</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_clamp_negative_to_zero</span><span class="p">(</span><span class="n">x</span><span class="p">:</span><span class="n">NDArrayReal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArrayReal</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Clamp negative values to 0 to avoid invalid square root.</span>
+<span class="sd">    </span>
+<span class="sd">    If negative values are found, warns with the percentage of clipped value.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : numpy.ndarray </span>
+<span class="sd">         Magnitude-corrected image to be clamped to non-negative values.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    x : np.ndarray of non-negative values</span>
+<span class="sd">        Magnitude-corrected image, clamped to non-negative values.</span>
+<span class="sd">        </span>
+<span class="sd">    Warns</span>
+<span class="sd">    -----</span>
+<span class="sd">    RuntimeWarning</span>
+<span class="sd">        If negative values are found, a warning reports the percentage of</span>
+<span class="sd">        values clamped to zero.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_neg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+    
+    <span class="c1"># in case too many negative values are found after cleaning algorithm</span>
+    <span class="c1"># user can decide a data preprocess strategy</span>
+    <span class="k">if</span> <span class="n">n_neg</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">n_neg</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">% negative values set to zero before square root.&quot;</span><span class="p">,</span>
+            <span class="ne">RuntimeWarning</span>
+        <span class="p">)</span>
+        <span class="n">x</span><span class="p">[</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="k">return</span> <span class="n">x</span>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+
+
+<div class="viewcode-block" id="subtract_noise">
+<a class="viewcode-back" href="../api.html#mri_noiselab.subtract_noise">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">subtract_noise</span><span class="p">(</span>
+        <span class="n">image</span><span class="p">:</span><span class="n">NDArrayReal</span><span class="p">,</span>
+        <span class="n">bg_area</span><span class="p">:</span><span class="n">NDArrayReal</span><span class="p">,</span> 
+        <span class="n">b_tol</span><span class="p">:</span><span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> 
+        <span class="n">f_size</span><span class="p">:</span><span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> 
+        <span class="n">np_type</span><span class="p">:</span><span class="n">npt</span><span class="o">.</span><span class="n">DTypeLike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArrayReal</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform pixel-wise Rayleigh noise reduction on MRI magnitude images.</span>
+
+<span class="sd">    Noise is estimated from a background region assumed to contain</span>
+<span class="sd">    Rayleigh-distributed noise and removed using a magnitude correction</span>
+<span class="sd">    derived from the Rician noise model.</span>
+<span class="sd"> </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    image : numpy.ndarray.</span>
+<span class="sd">        Input magnitude image. Values must be finite and non-negative.</span>
+<span class="sd">        Can be N-dimensional as biomedical images.</span>
+<span class="sd">    bg_area : numpy.ndarray </span>
+<span class="sd">        Background region containing only noise (no signal).</span>
+<span class="sd">        Values must be finite and non-negative.</span>
+<span class="sd">    b_tol : float, optional</span>
+<span class="sd">        Absolute tolerance used to assess deviation of the background</span>
+<span class="sd">        mean-to-standard-deviation ratio from 1.91, the expected Rayleigh value.</span>
+<span class="sd">        Default is 0.1</span>
+<span class="sd">    f_size : int, optional</span>
+<span class="sd">        Size of the local window (in pixel) used to compute mean and variance.</span>
+<span class="sd">        Default is 10.</span>
+<span class="sd">    np_type : numpy.dtype, optional</span>
+<span class="sd">        The numpy data type to be used during computation.</span>
+<span class="sd">        Default is np.float32</span>
+<span class="sd"> </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A : numpy.ndarray</span>
+<span class="sd">        Noise-corrected image with the same shape as `image`.</span>
+<span class="sd">        Output values are non-negative.</span>
+<span class="sd"> </span>
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        If the input is not a numpy.ndarray (masked arrays must be handled via subtract_noise_masked)</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If background region has negative values.</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If input image has negative values.</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If background region is entirely zero (all pixels == 0).</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If input image is entirely zero (all pixels == 0).</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If background has zero standard deviation (noiseless values).</span>
+<span class="sd">    RuntimeError</span>
+<span class="sd">        If numpy encounters overflow, invalid, zero division, underflow.</span>
+<span class="sd"> </span>
+<span class="sd">    Warns</span>
+<span class="sd">    -----</span>
+<span class="sd">    RuntimeWarning</span>
+<span class="sd">        If image standard deviation is zero (uniform noisless image).</span>
+<span class="sd">    RuntimeWarning</span>
+<span class="sd">        If ratio of background average and standard deviation differs from 1.91, </span>
+<span class="sd">        as expected in a Rayleigh distribution.</span>
+<span class="sd">    RuntimeWarning</span>
+<span class="sd">        If negative values are produced by the correction and are clamped to zero.</span>
+<span class="sd">        </span>
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - The algorithm assumes spatially stationary Rayleigh noise.</span>
+<span class="sd">    - Masked arrays must be handled via :func:&#39;subtract_noise_masked&#39;</span>
+<span class="sd">    - Negative input values are not supported; they must be masked or removed</span>
+<span class="sd">      prior to calling this function.</span>
+<span class="sd">    - Background area can be a slice of the input image or a separate array.</span>
+<span class="sd">    - Background size and shape may differ from image.</span>
+<span class="sd">    - The choice of &#39;f_size&#39; affects the trade-off between noise reduction and</span>
+<span class="sd">      spatial resolution.</span>
+<span class="sd">      </span>
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    Load an MRI magnitude image from a DICOM file, estimate noise from a</span>
+<span class="sd">    background region, and apply noise correction::</span>
+<span class="sd">    </span>
+<span class="sd">        import pydicom</span>
+<span class="sd">        import numpy as np</span>
+<span class="sd">        from mri_noiselab import subtract_noise</span>
+<span class="sd">        </span>
+<span class="sd">        ds = pydicom.dcmread(&quot;example_mri.dcm&quot;)</span>
+<span class="sd">        image = ds.pixel_array.astype(np.float32)</span>
+<span class="sd">        </span>
+<span class="sd">        # Select a background region (noise only)</span>
+<span class="sd">        background = image[0:50, 0:50]</span>
+<span class="sd">        </span>
+<span class="sd">        corrected = subtract_noise(image, background)</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># NOTE invalid pixel can be masked with subtract_noise_masked to pass through input checks</span>
+    <span class="n">_validate_input</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="s2">&quot;image&quot;</span><span class="p">)</span>
+    <span class="n">_validate_input</span><span class="p">(</span><span class="n">bg_area</span><span class="p">,</span> <span class="s2">&quot;background&quot;</span><span class="p">)</span>
+           
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="s1">&#39;raise&#39;</span><span class="p">,</span><span class="n">invalid</span><span class="o">=</span><span class="s1">&#39;raise&#39;</span><span class="p">,</span><span class="n">divide</span><span class="o">=</span><span class="s1">&#39;raise&#39;</span><span class="p">,</span><span class="n">under</span><span class="o">=</span><span class="s1">&#39;raise&#39;</span><span class="p">):</span>
+            
+            <span class="c1"># Numpy array cast so user can decide for data precision</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np_type</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">bg_area</span> <span class="o">=</span> <span class="n">bg_area</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np_type</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                        
+            <span class="c1"># background global Rayleigh distribution sigma parameter</span>
+            <span class="n">sigma_r</span> <span class="o">=</span> <span class="n">_estimate_rayleigh_noise</span><span class="p">(</span><span class="n">bg_area</span><span class="p">,</span> <span class="n">b_tol</span><span class="o">=</span><span class="n">b_tol</span><span class="p">)</span>
+            
+            <span class="c1"># physically uncommon a completely uniform image with no noise</span>
+            <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">image</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;No noise found in image (std = 0).&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+            
+            <span class="c1"># image stats locally computed avoiding manual windowing cycle</span>
+            <span class="n">m_ave</span> <span class="o">=</span> <span class="n">uniform_filter</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">f_size</span><span class="p">)</span> <span class="c1">#local average magnitude</span>
+            <span class="n">m_ave_sq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">m_ave</span><span class="p">)</span> <span class="c1">#squared local average</span>
+            <span class="n">mean_sq</span> <span class="o">=</span> <span class="n">uniform_filter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">image</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">f_size</span><span class="p">)</span> <span class="c1">#local average of squares</span>
+            <span class="n">m_var</span> <span class="o">=</span> <span class="n">mean_sq</span> <span class="o">-</span> <span class="n">m_ave_sq</span> <span class="c1">#local variance </span>
+                        
+            <span class="c1"># Magnitude correction</span>
+                <span class="c1"># NB sigma_r is still scalar: numpy broadcasting is more efficent than a full np.array</span>
+            <span class="n">A_squared</span> <span class="o">=</span> <span class="n">m_ave_sq</span> <span class="o">+</span> <span class="n">m_var</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigma_r</span> <span class="o">**</span><span class="mi">2</span><span class="p">)</span> 
+                <span class="c1"># positivity requirement to avoid Nan in sqrt</span>
+            <span class="n">A_squared</span> <span class="o">=</span> <span class="n">_clamp_negative_to_zero</span><span class="p">(</span><span class="n">A_squared</span><span class="p">)</span>
+
+            <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">A_squared</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">FloatingPointError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; during noise subtraction.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> 
+            <span class="s2">&quot;Tip: to circuvent overflow try np_type=np.float64 or scale inputs down and rescale outputs.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">A</span></div>
+
+
+
+<div class="viewcode-block" id="subtract_noise_masked">
+<a class="viewcode-back" href="../api.html#mri_noiselab.subtract_noise_masked">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">subtract_noise_masked</span><span class="p">(</span>
+        <span class="n">image_ma</span><span class="p">:</span> <span class="n">MaskedNDArray</span><span class="p">,</span>
+        <span class="n">bg_ma</span><span class="p">:</span> <span class="n">MaskedNDArray</span> <span class="o">|</span> <span class="n">NDArrayReal</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span> <span class="c1"># After * no positional argument</span>
+        <span class="n">fill_value</span><span class="p">:</span><span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">return_masked</span><span class="p">:</span><span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="n">MaskedNDArray</span> <span class="o">|</span> <span class="n">NDArrayReal</span><span class="p">):</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Apply Rayleigh noise subtraction to a masked image.</span>
+
+<span class="sd">    This wrapper enables the use of numpy masked arrays with the</span>
+<span class="sd">    :func:`subtract_noise` function, which does not natively support masks.</span>
+<span class="sd">    </span>
+<span class="sd">    Useful in case segmentation is provided or to hide problematic pixels. </span>
+
+<span class="sd">    Masked pixels are temporarily filled with a constant value for the</span>
+<span class="sd">    numerical computation and the original mask is restored on output.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    image_ma : numpy.ma.MaskedArray</span>
+<span class="sd">        Input image as a masked array. Masked pixels are excluded from</span>
+<span class="sd">        validation checks and restored in the output.</span>
+<span class="sd">    bg_ma : numpy.ndarray or numpy.ma.MaskedArray</span>
+<span class="sd">        Background region used for noise estimation. If masked, only</span>
+<span class="sd">        unmasked values are used to compute statistics.</span>
+<span class="sd">    fill_value : float, optional</span>
+<span class="sd">        Value used to fill masked pixels before computation.</span>
+<span class="sd">        Default is 0.0 (it will affect local mean and std at borders).</span>
+<span class="sd">    return_masked : bool, optional</span>
+<span class="sd">        If True, return a masked array with the same mask as `image_ma`.</span>
+<span class="sd">        If False, return a regular numpy.ndarray.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Additional keyword arguments forwarded to `subtract_noise`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.ndarray or numpy.ma.MaskedArray</span>
+<span class="sd">        Noise-corrected image. Masked if `return_masked=True`.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        If `image_ma` is not a numpy.ma.MaskedArray.</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If the background has no valid (unmasked) pixels.</span>
+<span class="sd">    </span>
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - Noise correction is still computed over the full image extent.</span>
+<span class="sd">    - Masking only affects validation, background statistics, and the output mask.</span>
+<span class="sd">    - Use `fill_value` carefully to minimize boundary artifacts.</span>
+<span class="sd">    </span>
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    Apply noise correction to a DICOM image using a masked array to exclude</span>
+<span class="sd">    invalid pixels::</span>
+<span class="sd">    </span>
+<span class="sd">        import pydicom</span>
+<span class="sd">        import numpy as np</span>
+<span class="sd">        import numpy.ma as ma</span>
+<span class="sd">        from mri_noiselab import subtract_noise_masked</span>
+<span class="sd">        </span>
+<span class="sd">        ds = pydicom.dcmread(&quot;example_mri.dcm&quot;)  </span>
+<span class="sd">        image = ds.pixel_array.astype(np.float32)</span>
+<span class="sd">        </span>
+<span class="sd">        mask = image &lt;= 0</span>
+<span class="sd">        image_ma = ma.masked_array(image, mask=mask)</span>
+<span class="sd">        </span>
+<span class="sd">        background = image[0:50, 0:50]</span>
+<span class="sd">        corrected = subtract_noise_masked(image_ma, background)</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">isMaskedArray</span><span class="p">(</span><span class="n">image_ma</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;image_ma must be a numpy.ma.MaskedArray,</span>
+<span class="s2">                        otherwise use subtract_noise&quot;&quot;&quot;</span><span class="p">)</span>
+       
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">isMaskedArray</span><span class="p">(</span><span class="n">bg_ma</span><span class="p">):</span>
+        <span class="n">bg_valid</span> <span class="o">=</span> <span class="n">bg_ma</span><span class="o">.</span><span class="n">compressed</span><span class="p">()</span>  <span class="c1"># no need to preserve position in bg stats</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">bg_valid</span> <span class="o">=</span> <span class="n">bg_ma</span> <span class="c1"># no need for the background to be masked too</span>
+
+    <span class="k">if</span> <span class="n">bg_valid</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Background has no valid (unmasked) pixels.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># user can better control borders effect in local image statistic computation </span>
+    <span class="n">image_filled</span> <span class="o">=</span> <span class="n">image_ma</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">fill_value</span><span class="p">)</span>
+    
+    <span class="c1"># NOTE computation is still performed for all the image size</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">subtract_noise</span><span class="p">(</span><span class="n">image_filled</span><span class="p">,</span> <span class="n">bg_valid</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_masked</span><span class="p">:</span> <span class="c1">#if fill is zero maybe user has no need to mask the output</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">getmaskarray</span><span class="p">(</span><span class="n">image_ma</span><span class="p">),</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span> </div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">mri_noiselab</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Serena Bedeschi.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

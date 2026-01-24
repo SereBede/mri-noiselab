@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>mri-noiselab &#8212; mri_noiselab 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=2709fde1"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="mri-noiselab">
+<h1>mri-noiselab<a class="headerlink" href="#mri-noiselab" title="Link to this heading">¶</a></h1>
+<p>A python library that estimates and reduces noise in magnetic resonance images.</p>
+<p>mri-noiselab` is a Python library for estimating from a background region and
+reducing Rayleigh-distributed noise in magnetic resonance (MRI) magnitude images, with support for masked data.
+Useful in image preprocessing for quantitative MRI studies.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
+<section id="from-source">
+<h3>From source<a class="headerlink" href="#from-source" title="Link to this heading">¶</a></h3>
+<p>Clone the repository and install it.
+…
+Make sure the required dependencies are installed (see below).</p>
+</section>
+</section>
+<section id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>numpy</p></li>
+<li><p>scipy</p></li>
+</ul>
+</section>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">¶</a></h2>
+<p>Full documentatio is provided at the page…</p>
+<p>See the following examples in this same github repository:</p>
+<ul class="simple">
+<li><p>example_uniform_image.py</p></li>
+<li><p>example_3levels_image.py</p></li>
+<li><p>example_3_ROIs.py</p></li>
+</ul>
+<p>And how to guides:</p>
+<ul class="simple">
+<li><p>howto_clean_dicom working on the MR_femur_head.dcm file</p></li>
+</ul>
+<section id="basic-usage">
+<h3>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading">¶</a></h3>
+<p>Important
+Inputs must contain finite, non-negative values, numpy array.
+Background regions must contain noise only (no signal).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pydicom</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mri_noiselab</span><span class="w"> </span><span class="kn">import</span> <span class="n">subtract_noise</span>
+
+<span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">dcmread</span><span class="p">(</span><span class="s2">&quot;example_mri.dcm&quot;</span><span class="p">)</span>
+<span class="n">image</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+<span class="c1"># Select a background region (noise only)</span>
+<span class="n">background</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">50</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">50</span><span class="p">]</span>
+
+<span class="n">corrected</span> <span class="o">=</span> <span class="n">subtract_noise</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">background</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="masked-array-support">
+<h3>Masked Array Support<a class="headerlink" href="#masked-array-support" title="Link to this heading">¶</a></h3>
+<p>The library supports NumPy masked arrays via dedicated wrapper
+:func:subtract_noise_masked</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mri_noiselab</span><span class="w"> </span><span class="kn">import</span> <span class="n">subtract_noise_masked</span>
+
+<span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">dcmread</span><span class="p">(</span><span class="s2">&quot;example_mri.dcm&quot;</span><span class="p">)</span>
+<span class="n">image</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+<span class="n">threshold</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="n">image_ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_array</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&gt;=</span> <span class="n">threshold</span><span class="p">)</span>
+<span class="n">bg_ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_array</span><span class="p">(</span><span class="n">background</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">background</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">)</span>
+
+<span class="n">cleaned_ma</span> <span class="o">=</span> <span class="n">subtract_noise_masked</span><span class="p">(</span><span class="n">image_ma</span><span class="p">,</span> <span class="n">bg_ma</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Masked pixels are excluded from validation and restored in the output.</p>
+</section>
+</section>
+<section id="author">
+<h2>Author<a class="headerlink" href="#author" title="Link to this heading">¶</a></h2>
+<p>Serena Bedeschi
+email serena.bedeschi&#64;studio.unibo.it
+github SereBede</p>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading">¶</a></h2>
+<p>This project is licensed under the Creative Commons
+Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
+for educational and research purposes.</p>
+<p>Commercial use is not permitted without explicit permission
+from the author.</p>
+</section>
+<section id="notes">
+<h2>Notes<a class="headerlink" href="#notes" title="Link to this heading">¶</a></h2>
+<p><strong>Noise Model</strong></p>
+<p>Every voxel of a Nuclear Magnetic Resonance image has a measured magnitude M,
+composed by the true signal A and the noise. The noise results from the
+composition of white noise (gaussian noise with zero mean) both on the
+real and complex components of NMR signal.</p>
+<p>The noise assumes a Rayleigh distribution in the magnitude image,
+which is characteristic of MRI and other coherent imaging systems where
+complex or bivariate data is converted to magnitude by quadrature sum.
+The Rayleigh distribution parameter sigma_r is estimated from background as:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sigma_r = std(bg_area) / 0.655
+</pre></div>
+</div>
+<p>where 0.655 ≈ sqrt(2/π) relates the Rayleigh distribution’s standard
+deviation to its scale parameter (sigma).</p>
+<p>By estimation of noise level it is possible to subtract it and so to better
+approximate A, the true value of signal.</p>
+<p>The relationship between true signal A and the measured
+magnitude average and standard deviation follows the equation:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>A^2 = m_ave^2 + m_sd^2 - 2 * sigma_r^2
+</pre></div>
+</div>
+<p>and for A=0 (i.e. in the background) it results:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>m_ave_bg = 1.253*sigma_r    and    m_sd_bg = 0,655*sigma_r
+</pre></div>
+</div>
+<p>Reference:
+R. Mark Henkelman, “Measument of signal intensities in the presence of
+noise in MR images”, published in 1985.</p>
+<p><strong>Cleaning Algorithm Steps</strong></p>
+<ol class="arabic simple">
+<li><p>Validate inputs (non-zero or negative images, valid background statistics)</p></li>
+<li><p>Compute image local statistics: mean (m_ave) and std (m_sd)
+(already squared for computation convenience)</p></li>
+<li><p>Estimate Rayleigh noise parameter from background: sigma_r</p></li>
+<li><p>Calculate corrected magnitude squared: A² = m_ave² + m_sd² - 2*sigma_r²</p></li>
+<li><p>Apply positivity constraint: A²[A² &lt; 0] = 0</p></li>
+<li><p>Return corrected magnitude: A = sqrt(A²)</p></li>
+</ol>
+<p><strong>Assumptions</strong></p>
+<ul class="simple">
+<li><p>Images and background are positive valued</p></li>
+<li><p>Noise follows a Rayleigh distribution</p></li>
+<li><p>Background region contains only noise (negligible true signal)</p></li>
+</ul>
+<p><strong>Limitations</strong></p>
+<ul class="simple">
+<li><p>Assumes spatially uniform noise characteristics</p></li>
+<li><p>The filter size affects the fine details and edges of the images</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#mri_noiselab.subtract_noise"><code class="docutils literal notranslate"><span class="pre">subtract_noise()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#mri_noiselab.subtract_noise_masked"><code class="docutils literal notranslate"><span class="pre">subtract_noise_masked()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">mri_noiselab</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="api.html" title="next chapter">API Reference</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, Serena Bedeschi.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/index.md.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
