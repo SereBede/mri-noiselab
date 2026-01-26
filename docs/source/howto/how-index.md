@@ -1,0 +1,15 @@
+# How to
+This section provides practical, task-oriented guides for common workflows
+when using *mri-noiselab*.  
+Each how-to focuses on a specific goal and shows the minimal steps required
+to accomplish it.
+
+Currently, the available guide covers the complete DICOM workflow, from
+loading MRI data to preparing magnitude images suitable for noise
+estimation and correction, to the final export.
+
+```{toctree}
+:maxdepth: 1
+
+dicom_workflow
+```

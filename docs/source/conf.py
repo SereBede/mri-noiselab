@@ -3,15 +3,8 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# import os
-# import sys
-
-# # Add project root to sys.path so autodoc can import mri_noiselab.py
-# print(sys.path)
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..\\..")))
-
 # -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 project = 'mri_noiselab'
 copyright = '2026, Serena Bedeschi'
@@ -19,18 +12,20 @@ author = 'Serena Bedeschi'
 release = '0.1'
 
 # -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "myst_parser",
+    #"myst_nb",
     ]
 
 source_suffix = {
     ".rst": "restructuredtext",
-    ".md": "markdown"#,
+    ".md": "markdown",
+    #".ipynb": "myst-nb",
     }
 
 napoleon_numpy_docstring = True
@@ -48,7 +43,7 @@ language = 'en'
 highlight_language = "python"
 
 # -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-html_theme = 'alabaster'
+html_theme = 'pydata_sphinx_theme'
 html_static_path = ['_static']

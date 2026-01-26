@@ -1,0 +1,21 @@
+Tutorial
+========
+These tutorials introduce the core ideas behind the noise model and the correction strategy implemented in mri-noiselab, using synthetic images where ground truth is known.
+
+The examples are designed to be simple and controlled, so that the effect of Rayleigh noise estimation and subtraction can be clearly observed and quantified. They progressively introduce:
+
+.. toctree::
+   :maxdepth: 1
+
+   uniform_image
+   three_levels
+   three_rois
+
+- uniform signal regions,
+
+- spatially varying signal levels,
+
+- region-based (ROI) processing.
+
+Together, these tutorials help build intuition before applying the method to real MRI data
+

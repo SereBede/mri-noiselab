@@ -12,6 +12,7 @@ The public functions are:
 - subtract_noise_masked
 
 The module is designed for research and educational purposes.
+Relies on numpy and scipy modules
 
 """
 
