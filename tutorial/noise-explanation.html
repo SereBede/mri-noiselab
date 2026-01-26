@@ -1,0 +1,655 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>MRI magnitude noise model &#8212; mri_noiselab 0.1 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=2709fde1"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'tutorial/noise-explanation';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API reference" href="../api/api-index.html" />
+    <link rel="prev" title="Notes" href="../notes.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">mri_noiselab 0.1 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../notes.html">
+    Notes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api/api-index.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tut-index.html">
+    Tutorial
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../howto/how-index.html">
+    How to
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../notes.html">
+    Notes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api/api-index.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="tut-index.html">
+    Tutorial
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../howto/how-index.html">
+    How to
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">MRI magnitude noise model</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../notes.html" class="nav-link">Notes</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">MRI magnitude noise model</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="mri-magnitude-noise-model">
+<h1>MRI magnitude noise model<a class="headerlink" href="#mri-magnitude-noise-model" title="Link to this heading">#</a></h1>
+<p>Magnetic resonance images are typically stored and analyzed as magnitude data,
+obtained from the quadrature combination of the real and imaginary components
+of the complex MR signal. While this representation is convenient, it introduces
+a characteristic noise behavior that differs from the original Gaussian noise
+present in the complex domain.</p>
+<p>In regions where no true signal is present, such as background areas outside
+the object, the magnitude values follow a <strong>Rayleigh distribution</strong>. This
+property allows the noise level to be estimated directly from background
+statistics and is commonly exploited in MRI preprocessing.</p>
+<p>When a true signal is present, the magnitude image no longer follows a Rayleigh
+distribution. Instead, the combination of the underlying signal amplitude and
+additive complex Gaussian noise results in a <strong>Rician distribution</strong> for the
+measured magnitude values. This transition from Rayleigh (noise-only) to Rician
+(signal plus noise) is a fundamental aspect of MRI magnitude data and has
+important implications for quantitative analysis.</p>
+<p>In this section, the magnitude noise model is illustrated by simulating the
+quadrature sum of a deterministic signal and Gaussian noise, producing
+synthetic magnitude data of the form:</p>
+<p>M = sqrt{A^2 + N^2}</p>
+<p><a class="reference external" href="https://github.com/SereBede/mri-noiselab/tree/main/tutorial/noise_model_explanation.py">Download code here</a></p>
+<section id="import-useful-functions-and-random-generator">
+<h2>Import, useful functions and random generator<a class="headerlink" href="#import-useful-functions-and-random-generator" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="linenos"> 2</span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="linenos"> 3</span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
+<span class="linenos"> 4</span><span class="kn">import</span><span class="w"> </span><span class="nn">mri_noiselab</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mrnl</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="k">def</span><span class="w"> </span><span class="nf">simulate_complex_gaussian_noise</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
+<span class="linenos"> 8</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate complex Gaussian noise: n_r, n_i ~ N(0, sigma^2)&quot;&quot;&quot;</span>
+<span class="linenos"> 9</span>    <span class="n">nr</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+<span class="linenos">10</span>    <span class="n">ni</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+<span class="linenos">11</span>    <span class="k">return</span> <span class="n">nr</span><span class="p">,</span> <span class="n">ni</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span>
+<span class="linenos">14</span><span class="k">def</span><span class="w"> </span><span class="nf">rayleigh_background</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
+<span class="linenos">15</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="linenos">16</span><span class="sd">    Rayleigh magnitude for background (A=0):</span>
+<span class="linenos">17</span><span class="sd">        M = sqrt(n_r^2 + n_i^2)  -&gt; Rayleigh(sigma)</span>
+<span class="linenos">18</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">19</span>    <span class="n">nr</span><span class="p">,</span> <span class="n">ni</span> <span class="o">=</span> <span class="n">simulate_complex_gaussian_noise</span><span class="p">((</span><span class="n">n</span><span class="p">,),</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
+<span class="linenos">20</span>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nr</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">ni</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<span class="linenos">21</span>
+<span class="linenos">22</span>
+<span class="linenos">23</span><span class="k">def</span><span class="w"> </span><span class="nf">magnitude_from_signal_and_noise</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
+<span class="linenos">24</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="linenos">25</span><span class="sd">    Rician magnitude given true signal A (considered Real):</span>
+<span class="linenos">26</span><span class="sd">        M = sqrt( (A + n_r)^2 + (n_i)^2 )</span>
+<span class="linenos">27</span><span class="sd">    where n_r, n_i ~ N(0, sigma^2) are gaussian distributed</span>
+<span class="linenos">28</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">29</span>    <span class="n">nr</span><span class="p">,</span> <span class="n">ni</span> <span class="o">=</span> <span class="n">simulate_complex_gaussian_noise</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">A</span><span class="p">),</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
+<span class="linenos">30</span>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">A</span> <span class="o">+</span> <span class="n">nr</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">ni</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+<span class="linenos">31</span>
+<span class="linenos">32</span>
+<span class="linenos">33</span><span class="k">def</span><span class="w"> </span><span class="nf">plot_hist_with_pdf</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">80</span><span class="p">):</span>
+<span class="linenos">34</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot magnitude probability distribution&quot;&quot;&quot;</span>
+<span class="linenos">35</span>    <span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">36</span>    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.05</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span>
+<span class="linenos">37</span>    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dist</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">))</span>
+<span class="linenos">38</span>    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+<span class="linenos">39</span>    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Magnitude&quot;</span><span class="p">)</span>
+<span class="linenos">40</span>    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Density&quot;</span><span class="p">)</span>
+<span class="linenos">41</span>
+<span class="linenos">42</span>
+<span class="linenos">43</span><span class="k">def</span><span class="w"> </span><span class="nf">snr_measure</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">selection</span><span class="p">):</span>
+<span class="linenos">44</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Signal and noise power ratio&quot;&quot;&quot;</span>
+<span class="linenos">45</span>    <span class="n">data</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">selection</span><span class="p">]</span>
+<span class="linenos">46</span>    <span class="n">p_signal</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+<span class="linenos">47</span>    <span class="n">p_noise</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+<span class="linenos">48</span>    <span class="k">return</span> <span class="n">p_signal</span> <span class="o">/</span> <span class="n">p_noise</span> <span class="k">if</span> <span class="n">p_noise</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+<span class="linenos">49</span>
+<span class="linenos">50</span>
+<span class="linenos">51</span><span class="c1"># initialize random generator</span>
+<span class="linenos">52</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="linenos">53</span>
+</pre></div>
+</div>
+</section>
+<section id="background-rayleigh-noise-distribution-generation">
+<h2>1) Background Rayleigh noise distribution generation<a class="headerlink" href="#background-rayleigh-noise-distribution-generation" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="n">sigma_true</span> <span class="o">=</span> <span class="mf">20.0</span>
+<span class="linenos"> 2</span><span class="n">bg</span> <span class="o">=</span> <span class="n">rayleigh_background</span><span class="p">(</span><span class="n">sigma_true</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">200_000</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span> <span class="c1">#n backgruond samples</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="c1"># Fit Rayleigh with loc fixed to 0 (magnitude is non-negative)</span>
+<span class="linenos"> 5</span><span class="c1"># scipy.stats.rayleigh paramization: (loc, scale) where scale ~ sigma</span>
+<span class="linenos"> 6</span><span class="n">ray_params</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">rayleigh</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="n">floc</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># -&gt; (loc, scale)</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="c1"># Kolmogorov–Smirnov test against fitted Rayleigh</span>
+<span class="linenos"> 9</span>
+<span class="linenos">10</span><span class="n">D_ray</span><span class="p">,</span> <span class="n">p_ray</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">kstest</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="s2">&quot;rayleigh&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">ray_params</span><span class="p">)</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span><span class="c1"># Mean/std ratio check</span>
+<span class="linenos">13</span><span class="n">ratio</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">bg</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">bg</span><span class="p">))</span>
+<span class="linenos">14</span><span class="n">expected_ratio</span> <span class="o">=</span> <span class="mf">1.91</span>  <span class="c1">#</span>
+<span class="linenos">15</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=== Background Area(Rayleigh) ===&quot;</span><span class="p">)</span>
+<span class="linenos">16</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;True sigma: </span><span class="si">{</span><span class="n">sigma_true</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">17</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fitted sigma (scale): </span><span class="si">{</span><span class="n">ray_params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">18</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mean: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">bg</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, std:</span><span class="si">{</span><span class="w"> </span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">bg</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">19</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mean/std ratio: </span><span class="si">{</span><span class="n">ratio</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> (expected ~ </span><span class="si">{</span><span class="n">expected_ratio</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+<span class="linenos">20</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;KS test: D=</span><span class="si">{</span><span class="n">D_ray</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2">, p_value=</span><span class="si">{</span><span class="n">p_ray</span><span class="si">:</span><span class="s2">.5g</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">21</span>
+<span class="linenos">22</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="linenos">23</span>
+<span class="linenos">24</span><span class="n">plot_hist_with_pdf</span><span class="p">(</span>
+<span class="linenos">25</span>    <span class="n">ax</span><span class="p">,</span> <span class="n">bg</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">rayleigh</span><span class="p">,</span> <span class="n">ray_params</span><span class="p">,</span>
+<span class="linenos">26</span>    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Background magnitude distribution ~ Rayleigh&quot;</span>
+<span class="linenos">27</span><span class="p">)</span>
+<span class="linenos">28</span>
+<span class="linenos">29</span><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="linenos">30</span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><img alt="Background magnitude distribution" src="../_images/rayleigh-dist.png" /></p>
+</section>
+<section id="signal-rician-distribution-generation">
+<h2>2) Signal Rician distribution generation<a class="headerlink" href="#signal-rician-distribution-generation" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="n">A_true</span> <span class="o">=</span> <span class="mf">60.0</span>
+<span class="linenos"> 2</span><span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">200_000</span><span class="p">,),</span> <span class="n">A_true</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="c1">#200_000 signal samples</span>
+<span class="linenos"> 3</span><span class="n">sig</span> <span class="o">=</span> <span class="n">magnitude_from_signal_and_noise</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">sigma_true</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="c1"># Fit Rice (Rician). scipy.stats.rice has shape parameter &#39;b&#39; plus loc, scale.</span>
+<span class="linenos"> 6</span><span class="c1"># We again fix loc=0 because magnitude is non-negative and typically loc=0.</span>
+<span class="linenos"> 7</span><span class="n">rice_params</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">rice</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">floc</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># -&gt; (b, loc, scale)</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="n">D_rice</span><span class="p">,</span> <span class="n">p_rice</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">kstest</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="s2">&quot;rice&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">rice_params</span><span class="p">)</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=== Signal Area(Rician) ===&quot;</span><span class="p">)</span>
+<span class="linenos">12</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;True A: </span><span class="si">{</span><span class="n">A_true</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, true sigma: </span><span class="si">{</span><span class="n">sigma_true</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">13</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fitted rice params: b=</span><span class="si">{</span><span class="n">rice_params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, scale=</span><span class="si">{</span><span class="n">rice_params</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">14</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;KS test: D=</span><span class="si">{</span><span class="n">D_rice</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2">, p_value=</span><span class="si">{</span><span class="n">p_rice</span><span class="si">:</span><span class="s2">.5g</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="linenos">17</span>
+<span class="linenos">18</span><span class="n">plot_hist_with_pdf</span><span class="p">(</span>
+<span class="linenos">19</span>    <span class="n">ax</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">rice</span><span class="p">,</span> <span class="n">rice_params</span><span class="p">,</span>
+<span class="linenos">20</span>    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Signal magnitude distribution ~ Rician (Rice)&quot;</span>
+<span class="linenos">21</span><span class="p">)</span>
+<span class="linenos">22</span>
+<span class="linenos">23</span><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="linenos">24</span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><img alt="Signal magnitude distribution" src="../_images/rician-dist.png" /></p>
+</section>
+<section id="apply-cleaning-on-a-small-phantom">
+<h2>3) Apply cleaning on a small phantom<a class="headerlink" href="#apply-cleaning-on-a-small-phantom" title="Link to this heading">#</a></h2>
+<p>Here we make a 2D phantom, add Rician noise in-signal, Rayleigh in background,
+then run mrnl.subtract_noise(image, bg_area).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="n">phantom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="linenos"> 2</span><span class="n">phantom</span><span class="p">[</span><span class="mi">32</span><span class="p">:</span><span class="mi">96</span><span class="p">,</span> <span class="mi">32</span><span class="p">:</span><span class="mi">96</span><span class="p">]</span> <span class="o">=</span> <span class="mf">60.0</span>  <span class="c1"># constant signal region</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="n">noisy</span> <span class="o">=</span> <span class="n">magnitude_from_signal_and_noise</span><span class="p">(</span><span class="n">phantom</span><span class="p">,</span> <span class="n">sigma_true</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span><span class="c1"># choose a background ROI with (ideally) no signal</span>
+<span class="linenos"> 7</span><span class="n">bg_area</span> <span class="o">=</span> <span class="n">noisy</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">24</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">24</span><span class="p">]</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="n">cleaned</span> <span class="o">=</span> <span class="n">mrnl</span><span class="o">.</span><span class="n">subtract_noise</span><span class="p">(</span><span class="n">noisy</span><span class="p">,</span> <span class="n">bg_area</span><span class="p">,</span> <span class="n">f_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="n">roi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">phantom</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+<span class="linenos">12</span><span class="n">roi</span><span class="p">[</span><span class="mi">32</span><span class="p">:</span><span class="mi">96</span><span class="p">,</span> <span class="mi">32</span><span class="p">:</span><span class="mi">96</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="linenos">13</span>
+<span class="linenos">14</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=== Phantom demo + mrnl.subtract_noise) ===&quot;</span><span class="p">)</span>
+<span class="linenos">15</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SNR measure (noisy, ROI):   </span><span class="si">{</span><span class="n">snr_measure</span><span class="p">(</span><span class="n">noisy</span><span class="p">,</span><span class="w"> </span><span class="n">roi</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">16</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SNR measure (cleaned, ROI): </span><span class="si">{</span><span class="n">snr_measure</span><span class="p">(</span><span class="n">cleaned</span><span class="p">,</span><span class="w"> </span><span class="n">roi</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">17</span>
+<span class="linenos">18</span><span class="n">fig2</span><span class="p">,</span> <span class="n">ax2</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="linenos">19</span><span class="n">ax2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">phantom</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">);</span> <span class="n">ax2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;True A (phantom)&quot;</span><span class="p">);</span> <span class="n">ax2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="linenos">20</span><span class="n">ax2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">noisy</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">);</span> <span class="n">ax2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Noisy magnitude&quot;</span><span class="p">);</span> <span class="n">ax2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="linenos">21</span><span class="n">ax2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">cleaned</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">);</span> <span class="n">ax2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;After subtract_noise&quot;</span><span class="p">);</span> <span class="n">ax2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="linenos">22</span><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="linenos">23</span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><img alt="Noise subtraction on a phantom" src="../_images/phantom-clean.png" /></p>
+</section>
+<section id="references-and-further-reading">
+<h2>References and further reading<a class="headerlink" href="#references-and-further-reading" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>R. Mark Henkelman, <em>Measurement of signal intensities in the presence of noise
+in MR images</em>, Medical Physics, 1985.</p></li>
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Rayleigh_distribution">Rayleigh distribution — Wikipedia</a></p></li>
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Rice_distribution">Rice distribution — Wikipedia</a></p></li>
+<li><p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rayleigh.html"><code class="docutils literal notranslate"><span class="pre">scipy.stats.rayleigh</span></code></a></p></li>
+<li><p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rice.html"><code class="docutils literal notranslate"><span class="pre">scipy.stats.rice</span></code></a></p></li>
+<li><p><a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.kstest.html"><code class="docutils literal notranslate"><span class="pre">scipy.stats.kstest</span></code></a></p></li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../notes.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Notes</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../api/api-index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">API reference</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#import-useful-functions-and-random-generator">Import, useful functions and random generator</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#background-rayleigh-noise-distribution-generation">1) Background Rayleigh noise distribution generation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#signal-rician-distribution-generation">2) Signal Rician distribution generation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#apply-cleaning-on-a-small-phantom">3) Apply cleaning on a small phantom</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#references-and-further-reading">References and further reading</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/tutorial/noise-explanation.md.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Serena Bedeschi.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

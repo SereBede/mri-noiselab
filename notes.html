@@ -44,7 +44,7 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'notes';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API reference" href="api/api-index.html" />
+    <link rel="next" title="MRI magnitude noise model" href="tutorial/noise-explanation.html" />
     <link rel="prev" title="mri-noiselab" href="index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -278,7 +278,10 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"></div>
+  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="tutorial/noise-explanation.html">MRI magnitude noise model</a></li>
+</ul>
+</div>
 </nav></div>
     </div>
   
@@ -340,29 +343,34 @@
 <h2>Noise Model<a class="headerlink" href="#noise-model" title="Link to this heading">#</a></h2>
 <p>Every voxel of a Nuclear Magnetic Resonance image has a measured magnitude M,
 composed by the true signal A and the noise. The noise results from the
-composition of gaussian noise with zero mean both on the
-real and complex components of NMR signal.</p>
+composition of gaussian noise with zero mean both on the real and complex
+components of NMR signal.</p>
 <p>The noise assumes a Rayleigh distribution in the magnitude image,
 which is characteristic of MRI and other coherent imaging systems where
 complex or bivariate data is converted to magnitude by quadrature sum.
-The Rayleigh distribution parameter sigma_r is estimated from background as:
-$$
-sigma_r = std(bg_area) / 0.655
-$$
-where 0.655 ≈ sqrt(2/π) relates the Rayleigh distribution’s standard
+The relationship between true signal A and the measured
+magnitude average and standard deviation follows the equation:</p>
+<p>A² = m_ave² + m_sd² - 2 * sigma_r²</p>
+<p>and for A=0 (i.e. in the background) it results:</p>
+<ul class="simple">
+<li><p>m_ave_bg = 1.253 * sigma_r</p></li>
+<li><p>m_sd_bg = 0,655 * sigma_r</p></li>
+</ul>
+<p>The Rayleigh distribution parameter sigma_r is then estimated from background as:</p>
+<p>sigma_r = std(bg_area) / 0.655</p>
+<p>where 0.655 ≈ sqrt(2/π) relates the Rayleigh distribution’s standard
 deviation to its scale parameter (sigma).</p>
 <p>By estimation of noise level it is possible to subtract it and so to better
 approximate A, the true value of signal.</p>
-<p>The relationship between true signal A and the measured
-magnitude average and standard deviation follows the equation:
-$$<br />
-A^2 = m_ave^2 + m_sd^2 - 2 * sigma_r^2
-$$
-and for A=0 (i.e. in the background) it results:</p>
-<p>m_ave_bg = 1.253<em>sigma_r   and   m_sd_bg = 0,655</em>sigma_r</p>
 <p>Reference:
 R. Mark Henkelman, “Measument of signal intensities in the presence of
 noise in MR images”, published in 1985.</p>
+<p>For a practical understanding of noise model see also the explanation code in</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial/noise-explanation.html">MRI magnitude noise model</a></li>
+</ul>
+</div>
 </section>
 <section id="cleaning-algorithm-steps">
 <h2>Cleaning Algorithm Steps<a class="headerlink" href="#cleaning-algorithm-steps" title="Link to this heading">#</a></h2>
@@ -371,7 +379,7 @@ noise in MR images”, published in 1985.</p>
 <li><p>Compute image local statistics: mean (m_ave) and std (m_sd)
 (already squared for computation convenience)</p></li>
 <li><p>Estimate Rayleigh noise parameter from background: sigma_r</p></li>
-<li><p>Calculate corrected magnitude squared:$$ A² = m_ave² + m_sd² - 2*sigma_r² $$</p></li>
+<li><p>Calculate corrected magnitude squared: A² = m_ave² + m_sd² - 2*sigma_r²</p></li>
 <li><p>Apply positivity constraint: A²[A² &lt; 0] = 0</p></li>
 <li><p>Return corrected magnitude: A = sqrt(A²)</p></li>
 </ol>
@@ -413,11 +421,11 @@ noise in MR images”, published in 1985.</p>
       </div>
     </a>
     <a class="right-next"
-       href="api/api-index.html"
+       href="tutorial/noise-explanation.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">API reference</p>
+        <p class="prev-next-title">MRI magnitude noise model</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
