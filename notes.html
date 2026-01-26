@@ -6,8 +6,9 @@
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Index &#8212; mri_noiselab 0.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Notes &#8212; mri_noiselab 0.1 documentation</title>
   
   
   
@@ -40,9 +41,11 @@
     <script src="_static/documentation_options.js?v=2709fde1"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
-    <link rel="index" title="Index" href="#" />
+    <script>DOCUMENTATION_OPTIONS.pagename = 'notes';</script>
+    <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API reference" href="api/api-index.html" />
+    <link rel="prev" title="mri-noiselab" href="index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -121,8 +124,8 @@
 <nav>
   <ul class="bd-navbar-elements navbar-nav">
     
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="notes.html">
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
     Notes
   </a>
 </li>
@@ -191,6 +194,10 @@
   
 
   
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
 </div>
 
     </header>
@@ -201,10 +208,8 @@
       
       
       
-        
-      
       <dialog id="pst-primary-sidebar-modal"></dialog>
-      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
         
 
   
@@ -219,8 +224,8 @@
 <nav>
   <ul class="bd-navbar-elements navbar-nav">
     
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="notes.html">
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
     Notes
   </a>
 </li>
@@ -268,6 +273,15 @@
     
   </div>
   
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
   
   <div class="sidebar-primary-items__end sidebar-primary__section">
       <div class="sidebar-primary-item">
@@ -288,7 +302,31 @@
           <div class="bd-content">
             <div class="bd-article-container">
               
-              <div class="bd-header-article d-print-none"></div>
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Notes</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
               
               
               
@@ -296,25 +334,64 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-
-<h1 id="index">Index</h1>
-
-<div class="genindex-jumpbox">
- <a href="#S"><strong>S</strong></a>
- 
-</div>
-<h2 id="S">S</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/subtract-noise.html#mri_noiselab.subtract_noise">subtract_noise() (in module mri_noiselab)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/subtract-noise-masked.html#mri_noiselab.subtract_noise_masked">subtract_noise_masked() (in module mri_noiselab)</a>
-</li>
-  </ul></td>
-</tr></table>
-
+  <section id="notes">
+<h1>Notes<a class="headerlink" href="#notes" title="Link to this heading">#</a></h1>
+<section id="noise-model">
+<h2>Noise Model<a class="headerlink" href="#noise-model" title="Link to this heading">#</a></h2>
+<p>Every voxel of a Nuclear Magnetic Resonance image has a measured magnitude M,
+composed by the true signal A and the noise. The noise results from the
+composition of gaussian noise with zero mean both on the
+real and complex components of NMR signal.</p>
+<p>The noise assumes a Rayleigh distribution in the magnitude image,
+which is characteristic of MRI and other coherent imaging systems where
+complex or bivariate data is converted to magnitude by quadrature sum.
+The Rayleigh distribution parameter sigma_r is estimated from background as:
+$$
+sigma_r = std(bg_area) / 0.655
+$$
+where 0.655 ≈ sqrt(2/π) relates the Rayleigh distribution’s standard
+deviation to its scale parameter (sigma).</p>
+<p>By estimation of noise level it is possible to subtract it and so to better
+approximate A, the true value of signal.</p>
+<p>The relationship between true signal A and the measured
+magnitude average and standard deviation follows the equation:
+$$<br />
+A^2 = m_ave^2 + m_sd^2 - 2 * sigma_r^2
+$$
+and for A=0 (i.e. in the background) it results:</p>
+<p>m_ave_bg = 1.253<em>sigma_r   and   m_sd_bg = 0,655</em>sigma_r</p>
+<p>Reference:
+R. Mark Henkelman, “Measument of signal intensities in the presence of
+noise in MR images”, published in 1985.</p>
+</section>
+<section id="cleaning-algorithm-steps">
+<h2>Cleaning Algorithm Steps<a class="headerlink" href="#cleaning-algorithm-steps" title="Link to this heading">#</a></h2>
+<ol class="arabic simple">
+<li><p>Validate inputs (non-zero or negative images, valid background statistics)</p></li>
+<li><p>Compute image local statistics: mean (m_ave) and std (m_sd)
+(already squared for computation convenience)</p></li>
+<li><p>Estimate Rayleigh noise parameter from background: sigma_r</p></li>
+<li><p>Calculate corrected magnitude squared:$$ A² = m_ave² + m_sd² - 2*sigma_r² $$</p></li>
+<li><p>Apply positivity constraint: A²[A² &lt; 0] = 0</p></li>
+<li><p>Return corrected magnitude: A = sqrt(A²)</p></li>
+</ol>
+</section>
+<section id="assumptions">
+<h2>Assumptions<a class="headerlink" href="#assumptions" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>Images and background are positive valued</p></li>
+<li><p>Noise follows a Rayleigh distribution</p></li>
+<li><p>Background region contains only noise (negligible true signal)</p></li>
+</ul>
+</section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>Assumes spatially uniform noise characteristics</p></li>
+<li><p>The filter size affects the fine details and edges of the images</p></li>
+</ul>
+</section>
+</section>
 
 
                 </article>
@@ -326,12 +403,60 @@
                 <footer class="prev-next-footer d-print-none">
                   
 <div class="prev-next-area">
+    <a class="left-prev"
+       href="index.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">mri-noiselab</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="api/api-index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">API reference</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
 </div>
                 </footer>
               
             </div>
             
             
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#noise-model">Noise Model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cleaning-algorithm-steps">Cleaning Algorithm Steps</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#assumptions">Assumptions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#limitations">Limitations</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/notes.md.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
               
             
           </div>

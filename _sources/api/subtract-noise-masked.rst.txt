@@ -1,0 +1,4 @@
+subtract_noise_masked
+=====================
+
+.. autofunction:: mri_noiselab.subtract_noise_masked

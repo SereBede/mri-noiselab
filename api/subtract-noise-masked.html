@@ -6,8 +6,9 @@
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Overview: module code &#8212; mri_noiselab 0.1 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>subtract_noise_masked &#8212; mri_noiselab 0.1 documentation</title>
   
   
   
@@ -40,9 +41,11 @@
     <script src="../_static/documentation_options.js?v=2709fde1"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/index';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/subtract-noise-masked';</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tutorial" href="../tutorial/tut-index.html" />
+    <link rel="prev" title="subtract_noise" href="subtract-noise.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -128,8 +131,8 @@
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api/api-index.html">
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="api-index.html">
     API reference
   </a>
 </li>
@@ -191,6 +194,10 @@
   
 
   
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
 </div>
 
     </header>
@@ -201,10 +208,8 @@
       
       
       
-        
-      
       <dialog id="pst-primary-sidebar-modal"></dialog>
-      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
         
 
   
@@ -226,8 +231,8 @@
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api/api-index.html">
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="api-index.html">
     API reference
   </a>
 </li>
@@ -268,6 +273,19 @@
     
   </div>
   
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="subtract-noise.html">subtract_noise</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">subtract_noise_masked</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
   
   <div class="sidebar-primary-items__end sidebar-primary__section">
       <div class="sidebar-primary-item">
@@ -303,7 +321,10 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Overview: module code</span></li>
+    
+    <li class="breadcrumb-item"><a href="api-index.html" class="nav-link">API reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">subtract_noise_masked</span></li>
   </ul>
 </nav>
 </div>
@@ -320,9 +341,72 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <h1>All modules for which code is available</h1>
-<ul><li><a href="mri_noiselab.html">mri_noiselab</a></li>
+  <section id="subtract-noise-masked">
+<h1>subtract_noise_masked<a class="headerlink" href="#subtract-noise-masked" title="Link to this heading">#</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="mri_noiselab.subtract_noise_masked">
+<span class="sig-prename descclassname"><span class="pre">mri_noiselab.</span></span><span class="sig-name descname"><span class="pre">subtract_noise_masked</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_ma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg_ma</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_masked</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mri_noiselab.html#subtract_noise_masked"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mri_noiselab.subtract_noise_masked" title="Link to this definition">#</a></dt>
+<dd><p>Apply Rayleigh noise subtraction to a masked image.</p>
+<p>This wrapper enables the use of numpy masked arrays with the
+<a class="reference internal" href="subtract-noise.html#mri_noiselab.subtract_noise" title="mri_noiselab.subtract_noise"><code class="xref py py-func docutils literal notranslate"><span class="pre">subtract_noise()</span></code></a> function, which does not natively support masks.</p>
+<p>Useful in case segmentation is provided or to hide problematic pixels.</p>
+<p>Masked pixels are temporarily filled with a constant value for the
+numerical computation and the original mask is restored on output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_ma</strong> (<em>numpy.ma.MaskedArray</em>) – Input image as a masked array. Masked pixels are excluded from
+validation checks and restored in the output.</p></li>
+<li><p><strong>bg_ma</strong> (<em>numpy.ndarray or numpy.ma.MaskedArray</em>) – Background region used for noise estimation. If masked, only
+unmasked values are used to compute statistics.</p></li>
+<li><p><strong>fill_value</strong> (<em>float, optional</em>) – Value used to fill masked pixels before computation.
+Default is 0.0 (it will affect local mean and std at borders).</p></li>
+<li><p><strong>return_masked</strong> (<em>bool, optional</em>) – If True, return a masked array with the same mask as <cite>image_ma</cite>.
+If False, return a regular numpy.ndarray.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments forwarded to <cite>subtract_noise</cite>.</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Noise-corrected image. Masked if <cite>return_masked=True</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray or numpy.ma.MaskedArray</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>TypeError</strong> – If <cite>image_ma</cite> is not a numpy.ma.MaskedArray.</p></li>
+<li><p><strong>ValueError</strong> – If the background has no valid (unmasked) pixels.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Noise correction is still computed over the full image extent.</p></li>
+<li><p>Masking only affects validation, background statistics, and the output mask.</p></li>
+<li><p>Use <cite>fill_value</cite> carefully to minimize boundary artifacts.</p></li>
+</ul>
+<p class="rubric">Examples</p>
+<p>Apply noise correction to a DICOM image using a masked array to exclude
+invalid pixels:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pydicom</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy.ma</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ma</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mri_noiselab</span><span class="w"> </span><span class="kn">import</span> <span class="n">subtract_noise_masked</span>
+
+<span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">dcmread</span><span class="p">(</span><span class="s2">&quot;example_mri.dcm&quot;</span><span class="p">)</span>
+<span class="n">image</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+<span class="n">mask</span> <span class="o">=</span> <span class="n">image</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+<span class="n">image_ma</span> <span class="o">=</span> <span class="n">ma</span><span class="o">.</span><span class="n">masked_array</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+
+<span class="n">background</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">50</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">50</span><span class="p">]</span>
+<span class="n">corrected</span> <span class="o">=</span> <span class="n">subtract_noise_masked</span><span class="p">(</span><span class="n">image_ma</span><span class="p">,</span> <span class="n">background</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
 
                 </article>
               
@@ -333,12 +417,57 @@
                 <footer class="prev-next-footer d-print-none">
                   
 <div class="prev-next-area">
+    <a class="left-prev"
+       href="subtract-noise.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">subtract_noise</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../tutorial/tut-index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Tutorial</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
 </div>
                 </footer>
               
             </div>
             
             
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#mri_noiselab.subtract_noise_masked"><code class="docutils literal notranslate"><span class="pre">subtract_noise_masked()</span></code></a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/subtract-noise-masked.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
               
             
           </div>

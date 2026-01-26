@@ -1,6 +1,0 @@
-API Reference
-=============
-
-.. automodule:: mri_noiselab
-   :members:
-   :undoc-members:

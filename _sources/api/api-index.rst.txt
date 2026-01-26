@@ -1,0 +1,18 @@
+API reference
+=============
+
+This module designed for research and educational purposes, provides utilities
+to estimate and remove Rayleigh-distributed noise from magnetic resonance (MRI) 
+magnitude images using a background-based approach derived from the Rician noise model.
+
+The public functions are:
+
+.. toctree::
+   :maxdepth: 1
+
+   subtract-noise
+
+   subtract-noise-masked
+
+subtract_noise_masked() enables the use of numpy masked arrays with the subtract_noise()
+function, which does not natively support masks.
