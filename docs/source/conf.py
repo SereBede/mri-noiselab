@@ -18,9 +18,14 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    #"sphinx.ext.mathjax",
     "myst_parser",
     #"myst_nb",
     ]
+
+# myst_enable_extensions = [
+#     "dollarmath",
+# ]
 
 source_suffix = {
     ".rst": "restructuredtext",
