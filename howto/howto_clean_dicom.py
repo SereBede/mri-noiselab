@@ -14,15 +14,21 @@ import pydicom                     # DICOM I/O
 import numpy as np                  # Numerical operations
 import matplotlib.pyplot as plt     # Visualization
 from mri_noiselab import subtract_noise  # Custom noise reduction function
-
+import os
 
 # ============================================================
 # 1. Load DICOM image
 # ============================================================
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+DICOM_PATH = os.path.join(HERE, "example.dcm")
+
 # Read the DICOM file, containig metadata and pixel data
-# (to open other dicom file replace with the actual file path)
-ds = pydicom.dcmread("..\data\example.dcm")
+# (to open other dicom file location replace with the actual file path)
+try: 
+    ds = pydicom.dcmread(DICOM_PATH)
+except FileNotFoundError:
+    raise FileNotFoundError("example.dcm not found inside the working directory")
 
 # Convert pixel data to float for numerical processing
 # (important to avoid integer overflow during calculations)
@@ -77,7 +83,7 @@ ds.Rows, ds.Columns = img_corr.shape
 ds.SOPInstanceUID = pydicom.uid.generate_uid()
 
 # Save corrected DICOM file
-ds.save_as("../data/corrected_image.dcm")
+ds.save_as("corrected_image.dcm")
 
 
 # ============================================================
