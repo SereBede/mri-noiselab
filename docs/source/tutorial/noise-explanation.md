@@ -26,6 +26,12 @@ M = sqrt{A^2 + N^2}
 
 [Download code here](https://github.com/SereBede/mri-noiselab/tree/main/tutorial/noise_model_explanation.py)
 
+**Requires: numpy, matplotlib, mri-noiselab**
+
+This code can be executed in an IDE or from the terminal.
+
+When matplotlib.pyplot.show() is called, execution pauses until the figure window is closed; figures can be saved to file before closing the window to continue execution.
+
 ## Import modules, define useful functions and istanciate random generator
 
 ```{literalinclude} ..\..\..\tutorial\noise_model_explanation.py

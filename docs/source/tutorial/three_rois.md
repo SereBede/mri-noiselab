@@ -14,6 +14,8 @@ Core steps in the script:
 
 [Download code here](https://github.com/SereBede/mri-noiselab/tree/main/tutorial/example_3_ROIs.py)
 
+Requires: numpy, matplotlib, mri-noiselab
+
 ## 0) Import modules and define helper function
 
 ```{literalinclude} ..\..\..\tutorial\example_3_ROIs.py

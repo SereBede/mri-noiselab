@@ -9,17 +9,20 @@ This how-to shows an end-to-end DICOM pipeline using **pydicom** and `mri_noisel
 - Update metadata (new `SOPInstanceUID`) and save a new DICOM
 - Visually compare original vs corrected images
 
-The example DICOM used here is provided in the repository: 
-[example.dcm](https://github.com/SereBede/mri-noiselab/tree/main/howto/howto_clean_dicom.py).
+[Download code here](https://github.com/SereBede/mri-noiselab/tree/main/howto/howto_clean_dicom.py)
 
-[Download code here](https://github.com/SereBede/mri-noiselab/tree/main/data/example.py)
+**Requires: pydicom, os, numpy, matplotlib, mri-noiselab**
+
+The example DICOM file used is provided here: 
+[example.dcm](https://github.com/SereBede/mri-noiselab/tree/main/data/example.dcm)
+**save it in the same directory of the code.**
 
 ## Load DICOM and convert pixel data to float
 
 ```{literalinclude} ../../../howto/howto_clean_dicom.py
 :language: python
 :linenos:
-:lines: 11-32
+:lines: 11-37
 
 ```
 
@@ -28,7 +31,7 @@ The example DICOM used here is provided in the repository:
 ```{literalinclude} ../../../howto/howto_clean_dicom.py
 :language: python
 :linenos:
-:lines: 34-50
+:lines: 40-56
 
 ```
 
@@ -46,7 +49,7 @@ A bad background ROI biases the Rayleigh σ estimate and can degrade the correct
 ```{literalinclude} ../../../howto/howto_clean_dicom.py
 :language: python
 :linenos:
-:lines: 53-80
+:lines: 59-86
 ```
 Key points:
 
@@ -59,7 +62,7 @@ Key points:
 ```{literalinclude} ../../../howto/howto_clean_dicom.py
 :language: python
 :linenos:
-:lines: 83-113
+:lines: 89-119
 ```
 Background noise intensity is reduced.
 
