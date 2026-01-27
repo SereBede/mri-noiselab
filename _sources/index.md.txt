@@ -10,25 +10,26 @@ The core algorithm relies on the relationship among true signal A, the measured
 magnitude average  `m_ave` and standard deviation `m_sd` and the noise distribution 
 `sigma_r` parameter, following this equation:
    
-    A = m_ave^2 + m_sd^2 - 2 * sigma_r^2
+    A^2 = m_ave^2 + m_sd^2 - 2 * sigma_r^2
 
 See the {doc}`notes` page for full scientific explanations.
 
 ## Installation
 
-#### From source
+Clone the repository and install it (virtual enviroment is recommended).
+In your terminal run:
 
-Clone the repository and install it.
 ```bash
     git clone https://github.com/serebede/mri-noiselab.git
     cd mri-noiselab
     pip install .
 ```
-or directly 
+or directly: 
 ```bash
     pip install git+https://github.com/serebede/mri-noiselab.git
 ```
-then inside you python code import the module
+
+Then to use it inside your python code, import the module `mri_noiselab`
  (pay attention to the underscore)
 
 ```python
@@ -41,10 +42,10 @@ Make sure the required dependencies are installed (see below).
  - numpy 2.4.1
  - scipy 1.17
 
-If not present, pip will automatically try to install them or upgrade them.
+If not present, pip will automatically try to install them or upgrade them during installation.
 
 
-### Basic Usage
+## Basic Usage
 
 Inputs must contain finite, non-negative valued, numpy array.
 Background regions must contain noise only (i.e. no signal).
@@ -88,7 +89,7 @@ cleaned_ma = subtract_noise_masked(image_ma, bg_ma)
 ```
 
 By default masked pixels are excluded from validation and restored in the output.
-See {doc}`api reference<api/subtract-noise-masked>` for detailed behaviour.
+See {doc}`subtract_noise_masked<api/subtract-noise-masked>` for detailed behaviour.
 
 
 ## Documentation
@@ -109,18 +110,12 @@ howto/how-index
 ```
 
 
-## Author
-Serena Bedeschi
-e-mail: serena.bedeschi@studio.unibo.it
-GitHub: SereBede
-
-
 ## License
 This project is licensed under the Creative Commons
 Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
 for educational and research purposes. 
 
-Free access to the source code at GitHub repository
+Open source code at 
 [GitHub repository](https://github.com/serebede/mri-noiselab.git)
 
 Commercial use is not permitted without explicit permission
@@ -141,3 +136,9 @@ Please ensure that the code follows the existing style
 and that tests pass before submitting.
 
 
+## Author
+Serena Bedeschi
+
+e-mail: serena.bedeschi@studio.unibo.it
+
+GitHub: SereBede

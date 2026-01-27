@@ -13,6 +13,8 @@ Core steps in the script:
 
 [Download code here](https://github.com/SereBede/mri-noiselab/tree/main/tutorial/example_3levels_image.py)
 
+Requires: numpy, matplotlib, mri-noiselab
+
 ## 1) Import modules and define useful function
 
 ```{literalinclude} ..\..\..\tutorial\example_3levels_image.py

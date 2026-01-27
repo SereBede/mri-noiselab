@@ -312,31 +312,29 @@ Useful in image preprocessing for quantitative MRI studies.
 The core algorithm relies on the relationship among true signal A, the measured
 magnitude average  <code class="docutils literal notranslate"><span class="pre">m_ave</span></code> and standard deviation <code class="docutils literal notranslate"><span class="pre">m_sd</span></code> and the noise distribution
 <code class="docutils literal notranslate"><span class="pre">sigma_r</span></code> parameter, following this equation:</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>A = m_ave^2 + m_sd^2 - 2 * sigma_r^2
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>A^2 = m_ave^2 + m_sd^2 - 2 * sigma_r^2
 </pre></div>
 </div>
 <p>See the <a class="reference internal" href="notes.html"><span class="doc">Notes</span></a> page for full scientific explanations.</p>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h2>
-<section id="from-source">
-<h3>From source<a class="headerlink" href="#from-source" title="Link to this heading">#</a></h3>
-<p>Clone the repository and install it.</p>
+<p>Clone the repository and install it (virtual enviroment is recommended).
+In your terminal run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/serebede/mri-noiselab.git
 <span class="w">    </span><span class="nb">cd</span><span class="w"> </span>mri-noiselab
 <span class="w">    </span>pip<span class="w"> </span>install<span class="w"> </span>.
 </pre></div>
 </div>
-<p>or directly</p>
+<p>or directly:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/serebede/mri-noiselab.git
 </pre></div>
 </div>
-<p>then inside you python code import the module
+<p>Then to use it inside your python code, import the module <code class="docutils literal notranslate"><span class="pre">mri_noiselab</span></code>
 (pay attention to the underscore)</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="kn">import</span><span class="w"> </span><span class="nn">mri_noiselab</span>
 </pre></div>
 </div>
 <p>Make sure the required dependencies are installed (see below).</p>
-</section>
 </section>
 <section id="dependencies">
 <h2>Dependencies<a class="headerlink" href="#dependencies" title="Link to this heading">#</a></h2>
@@ -344,9 +342,10 @@ magnitude average  <code class="docutils literal notranslate"><span class="pre">
 <li><p>numpy 2.4.1</p></li>
 <li><p>scipy 1.17</p></li>
 </ul>
-<p>If not present, pip will automatically try to install them or upgrade them.</p>
+<p>If not present, pip will automatically try to install them or upgrade them during installation.</p>
+</section>
 <section id="basic-usage">
-<h3>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading">#</a></h3>
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading">#</a></h2>
 <p>Inputs must contain finite, non-negative valued, numpy array.
 Background regions must contain noise only (i.e. no signal).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pydicom</span>
@@ -365,7 +364,6 @@ Background regions must contain noise only (i.e. no signal).</p>
 </pre></div>
 </div>
 <p>See <a class="reference internal" href="api/subtract-noise.html"><span class="doc">subtract_noise</span></a> for detailed behaviour.</p>
-</section>
 <section id="masked-array-support">
 <h3>Masked Array Support<a class="headerlink" href="#masked-array-support" title="Link to this heading">#</a></h3>
 <p>The library supports NumPy masked arrays via dedicated wrapper
@@ -385,7 +383,7 @@ Background regions must contain noise only (i.e. no signal).</p>
 </pre></div>
 </div>
 <p>By default masked pixels are excluded from validation and restored in the output.
-See <a class="reference internal" href="api/subtract-noise-masked.html"><span class="doc">api reference</span></a> for detailed behaviour.</p>
+See <a class="reference internal" href="api/subtract-noise-masked.html"><span class="doc">subtract_noise_masked</span></a> for detailed behaviour.</p>
 </section>
 </section>
 <section id="documentation">
@@ -418,18 +416,12 @@ See <a class="reference internal" href="api/subtract-noise-masked.html"><span cl
 </ul>
 </div>
 </section>
-<section id="author">
-<h2>Author<a class="headerlink" href="#author" title="Link to this heading">#</a></h2>
-<p>Serena Bedeschi
-e-mail: serena.bedeschi&#64;studio.unibo.it
-GitHub: SereBede</p>
-</section>
 <section id="license">
 <h2>License<a class="headerlink" href="#license" title="Link to this heading">#</a></h2>
 <p>This project is licensed under the Creative Commons
 Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
 for educational and research purposes.</p>
-<p>Free access to the source code at GitHub repository
+<p>Open source code at
 <a class="reference external" href="https://github.com/serebede/mri-noiselab.git">GitHub repository</a></p>
 <p>Commercial use is not permitted without explicit permission
 from the author.</p>
@@ -446,6 +438,12 @@ from the author.</p>
 </ol>
 <p>Please ensure that the code follows the existing style
 and that tests pass before submitting.</p>
+</section>
+<section id="author">
+<h2>Author<a class="headerlink" href="#author" title="Link to this heading">#</a></h2>
+<p>Serena Bedeschi</p>
+<p>e-mail: serena.bedeschi&#64;studio.unibo.it</p>
+<p>GitHub: SereBede</p>
 </section>
 </section>
 
@@ -487,19 +485,16 @@ and that tests pass before submitting.</p>
   </div>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">Installation</a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#from-source">From source</a></li>
-</ul>
-</li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dependencies">Dependencies</a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#basic-usage">Basic Usage</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">Installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dependencies">Dependencies</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#basic-usage">Basic Usage</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#masked-array-support">Masked Array Support</a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#documentation">Documentation</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#author">Author</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#license">License</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#contributing">Contributing</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#author">Author</a></li>
 </ul>
   </nav></div>
 

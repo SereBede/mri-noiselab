@@ -725,6 +725,7 @@
 
     <span class="c1"># user can better control borders effect in local image statistic computation </span>
     <span class="n">image_filled</span> <span class="o">=</span> <span class="n">image_ma</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">fill_value</span><span class="p">)</span>
+    <span class="c1"># NOTE the mode=&quot;constant&quot; parameter in uniform_filter affects only image borders </span>
     
     <span class="c1"># NOTE computation is still performed for all the image size</span>
     <span class="n">output</span> <span class="o">=</span> <span class="n">subtract_noise</span><span class="p">(</span><span class="n">image_filled</span><span class="p">,</span> <span class="n">bg_valid</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
