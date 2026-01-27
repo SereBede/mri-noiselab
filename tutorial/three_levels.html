@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>tree levels &#8212; mri_noiselab 0.1 documentation</title>
+    <title>Spatially varying signal levels &#8212; mri_noiselab 0.1 documentation</title>
   
   
   
@@ -44,8 +44,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'tutorial/three_levels';</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="three rois" href="three_rois.html" />
-    <link rel="prev" title="uniform syntetic image" href="uniform_image.html" />
+    <link rel="next" title="Region-based processing" href="three_rois.html" />
+    <link rel="prev" title="Uniform signal region" href="uniform_image.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   <meta name="docsearch:version" content="" />
@@ -279,9 +279,9 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="uniform_image.html">uniform syntetic image</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">tree levels</a></li>
-<li class="toctree-l1"><a class="reference internal" href="three_rois.html">three rois</a></li>
+<li class="toctree-l1"><a class="reference internal" href="uniform_image.html">Uniform signal region</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Spatially varying signal levels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="three_rois.html">Region-based processing</a></li>
 </ul>
 </div>
 </nav></div>
@@ -325,7 +325,7 @@
     
     <li class="breadcrumb-item"><a href="tut-index.html" class="nav-link">Tutorial</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tree levels</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Spatially varying signal levels</span></li>
   </ul>
 </nav>
 </div>
@@ -342,8 +342,176 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="tree-levels">
-<h1>tree levels<a class="headerlink" href="#tree-levels" title="Link to this heading">#</a></h1>
+  <section id="spatially-varying-signal-levels">
+<h1>Spatially varying signal levels<a class="headerlink" href="#spatially-varying-signal-levels" title="Link to this heading">#</a></h1>
+<p>This example simulates a synthetic magnitude image with <strong>three distinct signal levels</strong> plus background
+<strong>Rayleigh noise</strong>, and then applies <code class="docutils literal notranslate"><span class="pre">mri_noiselab.subtract_noise()</span></code> to reduce noise while preserving
+the different intensity regions.</p>
+<p>Core steps in the script:</p>
+<ol class="arabic simple">
+<li><p>Build a synthetic “true” phantom with <strong>three intensity levels</strong> concentric squares.</p></li>
+<li><p>Sample Rayleigh noise for the background (<code class="docutils literal notranslate"><span class="pre">rng.rayleigh(...)</span></code>)</p></li>
+<li><p>Combine signal and noise in quadrature (<code class="docutils literal notranslate"><span class="pre">sqrt(signal^2</span> <span class="pre">+</span> <span class="pre">noise^2)</span></code>)</p></li>
+<li><p>Apply <code class="docutils literal notranslate"><span class="pre">mrnl.subtract_noise(noisy_img,</span> <span class="pre">bg_noise,</span> <span class="pre">f_size=...)</span></code></p></li>
+<li><p>Compare images and print simple statistics region-wise</p></li>
+</ol>
+<p><a class="reference external" href="https://github.com/SereBede/mri-noiselab/tree/main/tutorial/example_3levels_image.py">Download code here</a></p>
+<section id="import-modules-and-define-useful-function">
+<h2>1) Import modules and define useful function<a class="headerlink" href="#import-modules-and-define-useful-function" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">import</span><span class="w"> </span><span class="nn">mri_noiselab</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mrnl</span>
+<span class="linenos"> 2</span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="linenos"> 3</span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="k">def</span><span class="w"> </span><span class="nf">img_stats</span> <span class="p">(</span><span class="n">image</span><span class="p">):</span>
+<span class="linenos"> 6</span><span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="linenos"> 7</span><span class="sd">    Creates a dictionary with average, standard deviation and signal to noise </span>
+<span class="linenos"> 8</span><span class="sd">    ratio of a uniform region</span>
+<span class="linenos"> 9</span>
+<span class="linenos">10</span><span class="sd">    Parameters</span>
+<span class="linenos">11</span><span class="sd">    ----------</span>
+<span class="linenos">12</span><span class="sd">    image : 2D numpy array as image.</span>
+<span class="linenos">13</span>
+<span class="linenos">14</span><span class="sd">    Returns</span>
+<span class="linenos">15</span><span class="sd">    -------</span>
+<span class="linenos">16</span><span class="sd">    stats : python dictionary where </span>
+<span class="linenos">17</span><span class="sd">        &#39;ave&#39;: mean of the sample image,</span>
+<span class="linenos">18</span><span class="sd">        &#39;sd&#39;: standard deviation of the sample image,</span>
+<span class="linenos">19</span><span class="sd">        &#39;snr&#39;: Signal to noise ratio computed as ratio of signal and noise powers</span>
+<span class="linenos">20</span>
+<span class="linenos">21</span><span class="sd">    &#39;&#39;&#39;</span>
+<span class="linenos">22</span>    <span class="n">ave</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="linenos">23</span>    <span class="n">sd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="linenos">24</span>    
+<span class="linenos">25</span>    <span class="n">P_signal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">image</span><span class="p">))</span>
+<span class="linenos">26</span>    <span class="n">P_noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="linenos">27</span>    
+<span class="linenos">28</span>    <span class="n">snr</span> <span class="o">=</span> <span class="n">P_signal</span> <span class="o">/</span> <span class="n">P_noise</span> <span class="k">if</span> <span class="n">P_noise</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+<span class="linenos">29</span>    
+<span class="linenos">30</span>    <span class="n">stats</span> <span class="o">=</span> <span class="p">{</span>
+<span class="linenos">31</span>        <span class="s1">&#39;ave&#39;</span><span class="p">:</span> <span class="n">ave</span><span class="p">,</span>
+<span class="linenos">32</span>        <span class="s1">&#39;sd&#39;</span><span class="p">:</span> <span class="n">sd</span><span class="p">,</span>
+<span class="linenos">33</span>        <span class="s1">&#39;snr&#39;</span><span class="p">:</span> <span class="n">snr</span>
+<span class="linenos">34</span>    <span class="p">}</span>
+<span class="linenos">35</span>    
+<span class="linenos">36</span>    <span class="k">return</span> <span class="n">stats</span>
+</pre></div>
+</div>
+</section>
+<section id="generate-and-clean-3-level-image-with-noise">
+<h2>2) Generate and clean 3-level image with noise<a class="headerlink" href="#generate-and-clean-3-level-image-with-noise" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1">## Create a 3 levels signal image affected by Rayleigh noise</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="c1"># (change these values to vary region intensities)</span>
+<span class="linenos"> 4</span><span class="n">true_signal_1</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="linenos"> 5</span><span class="n">true_signal_2</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="linenos"> 6</span><span class="n">true_signal_3</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="linenos"> 7</span><span class="c1"># (change this value to vary noise contribution)</span>
+<span class="linenos"> 8</span><span class="n">noise_level</span> <span class="o">=</span> <span class="mi">40</span>
+<span class="linenos"> 9</span><span class="c1"># (change this value to evaluate the effects of filter size)</span>
+<span class="linenos">10</span><span class="n">filter_size</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span><span class="c1"># Generate a 3 levels true image with concentric squares</span>
+<span class="linenos">14</span><span class="n">true_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">120</span><span class="p">,</span><span class="mi">120</span><span class="p">))</span>
+<span class="linenos">15</span><span class="n">true_img</span><span class="p">[</span><span class="mi">20</span><span class="p">:</span><span class="mi">100</span><span class="p">,</span><span class="mi">20</span><span class="p">:</span><span class="mi">100</span><span class="p">]</span> <span class="o">=</span> <span class="n">true_signal_1</span>
+<span class="linenos">16</span><span class="n">true_img</span><span class="p">[</span><span class="mi">35</span><span class="p">:</span><span class="mi">85</span><span class="p">,</span><span class="mi">35</span><span class="p">:</span><span class="mi">85</span><span class="p">]</span> <span class="o">=</span> <span class="n">true_signal_2</span>
+<span class="linenos">17</span><span class="n">true_img</span><span class="p">[</span><span class="mi">50</span><span class="p">:</span><span class="mi">70</span><span class="p">,</span><span class="mi">50</span><span class="p">:</span><span class="mi">70</span><span class="p">]</span> <span class="o">=</span> <span class="n">true_signal_3</span>
+<span class="linenos">18</span>
+<span class="linenos">19</span><span class="c1"># Generate the background noise</span>
+<span class="linenos">20</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<span class="linenos">21</span><span class="n">bg_noise</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">rayleigh</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">noise_level</span><span class="o">/</span><span class="mf">1.253</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">true_img</span><span class="p">))</span>
+<span class="linenos">22</span>
+<span class="linenos">23</span><span class="c1"># Background Noise is summed in quadrature to true signal</span>
+<span class="linenos">24</span><span class="n">noisy_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">true_img</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">bg_noise</span><span class="p">))</span>
+<span class="linenos">25</span>
+<span class="linenos">26</span><span class="c1">## Then given bg_noise clean it in noisy_img</span>
+<span class="linenos">27</span><span class="n">cleaned_img</span> <span class="o">=</span> <span class="n">mrnl</span><span class="o">.</span><span class="n">subtract_noise</span><span class="p">(</span><span class="n">noisy_img</span><span class="p">,</span> <span class="n">bg_noise</span><span class="p">,</span><span class="n">f_size</span><span class="o">=</span><span class="n">filter_size</span><span class="p">)</span>
+<span class="linenos">28</span><span class="n">cleaned_stats</span> <span class="o">=</span> <span class="n">img_stats</span><span class="p">(</span><span class="n">cleaned_img</span><span class="p">)</span>
+<span class="linenos">29</span>
+</pre></div>
+</div>
+</section>
+<section id="compute-levels-statistics">
+<h2>3) Compute levels statistics<a class="headerlink" href="#compute-levels-statistics" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1"># Beware selecting uniform level areas for stats!</span>
+<span class="linenos"> 2</span><span class="n">bg_stats</span> <span class="o">=</span> <span class="n">img_stats</span><span class="p">(</span><span class="n">noisy_img</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">20</span><span class="p">,:])</span>
+<span class="linenos"> 3</span><span class="n">noisy_stats_1</span> <span class="o">=</span> <span class="n">img_stats</span><span class="p">(</span><span class="n">noisy_img</span><span class="p">[</span><span class="mi">20</span><span class="p">:</span><span class="mi">35</span><span class="p">,</span><span class="mi">20</span><span class="p">:</span><span class="mi">100</span><span class="p">])</span>
+<span class="linenos"> 4</span><span class="n">noisy_stats_2</span> <span class="o">=</span> <span class="n">img_stats</span><span class="p">(</span><span class="n">noisy_img</span><span class="p">[</span><span class="mi">35</span><span class="p">:</span><span class="mi">50</span><span class="p">,</span><span class="mi">35</span><span class="p">:</span><span class="mi">85</span><span class="p">])</span>
+<span class="linenos"> 5</span><span class="n">noisy_stats_3</span> <span class="o">=</span> <span class="n">img_stats</span><span class="p">(</span><span class="n">noisy_img</span><span class="p">[</span><span class="mi">50</span><span class="p">:</span><span class="mi">70</span><span class="p">,</span><span class="mi">50</span><span class="p">:</span><span class="mi">70</span><span class="p">])</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="n">cleaned_stats_bg</span> <span class="o">=</span> <span class="n">img_stats</span><span class="p">(</span><span class="n">cleaned_img</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">20</span><span class="p">,:])</span>
+<span class="linenos"> 9</span><span class="n">cleaned_stats_1</span> <span class="o">=</span> <span class="n">img_stats</span><span class="p">(</span><span class="n">cleaned_img</span><span class="p">[</span><span class="mi">20</span><span class="p">:</span><span class="mi">35</span><span class="p">,</span><span class="mi">20</span><span class="p">:</span><span class="mi">100</span><span class="p">])</span>
+<span class="linenos">10</span><span class="n">cleaned_stats_2</span> <span class="o">=</span> <span class="n">img_stats</span><span class="p">(</span><span class="n">cleaned_img</span><span class="p">[</span><span class="mi">35</span><span class="p">:</span><span class="mi">50</span><span class="p">,</span><span class="mi">35</span><span class="p">:</span><span class="mi">85</span><span class="p">])</span>
+<span class="linenos">11</span><span class="n">cleaned_stats_3</span> <span class="o">=</span> <span class="n">img_stats</span><span class="p">(</span><span class="n">cleaned_img</span><span class="p">[</span><span class="mi">50</span><span class="p">:</span><span class="mi">70</span><span class="p">,</span><span class="mi">50</span><span class="p">:</span><span class="mi">70</span><span class="p">])</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span>
+<span class="linenos">14</span><span class="c1">#After cleaning the SNR should improve</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span><span class="n">statistics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ave&#39;</span><span class="p">:</span><span class="s1">&#39;Region mean&#39;</span><span class="p">,</span><span class="s1">&#39;sd&#39;</span><span class="p">:</span><span class="s1">&#39;Region std &#39;</span><span class="p">,</span><span class="s1">&#39;snr&#39;</span><span class="p">:</span><span class="s1">&#39;Region SNR &#39;</span><span class="p">}</span>
+<span class="linenos">17</span>
+<span class="linenos">18</span><span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">statistics</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+<span class="linenos">19</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">statistics</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="si">}</span><span class="s1"> | Before | After </span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span>
+<span class="linenos">20</span>         <span class="sa">f</span><span class="s1">&#39;Background | </span><span class="si">{</span><span class="n">bg_stats</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> | </span><span class="si">{</span><span class="n">cleaned_stats_bg</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> 
+<span class="linenos">21</span>         <span class="sa">f</span><span class="s1">&#39;Region 1   | </span><span class="si">{</span><span class="n">noisy_stats_1</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> | </span><span class="si">{</span><span class="n">cleaned_stats_1</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span>
+<span class="linenos">22</span>         <span class="sa">f</span><span class="s1">&#39;Region 2   | </span><span class="si">{</span><span class="n">noisy_stats_2</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> | </span><span class="si">{</span><span class="n">cleaned_stats_2</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span>
+<span class="linenos">23</span>         <span class="sa">f</span><span class="s1">&#39;Region 3   | </span><span class="si">{</span><span class="n">noisy_stats_3</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1"> | </span><span class="si">{</span><span class="n">cleaned_stats_3</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="linenos">24</span>
+</pre></div>
+</div>
+<p>Inspecting the standard output, here under, it is possible to observe that in cleaned regions:</p>
+<ul class="simple">
+<li><p>mean magnitude approximates better the true signal (NB: for background=0)</p></li>
+<li><p>the standard deviation is reduced</p></li>
+<li><p>the SNR improves</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">Example</span> <span class="n">standard</span> <span class="n">output</span><span class="p">)</span>
+<span class="n">Region</span> <span class="n">mean</span> <span class="o">|</span> <span class="n">Before</span> <span class="o">|</span> <span class="n">After</span> 
+ <span class="n">Background</span> <span class="o">|</span> <span class="mf">39.96</span> <span class="o">|</span> <span class="mf">9.55</span>
+ <span class="n">Region</span> <span class="mi">1</span>   <span class="o">|</span> <span class="mf">51.13</span> <span class="o">|</span> <span class="mf">27.44</span>
+ <span class="n">Region</span> <span class="mi">2</span>   <span class="o">|</span> <span class="mf">65.46</span> <span class="o">|</span> <span class="mf">49.18</span>
+ <span class="n">Region</span> <span class="mi">3</span>   <span class="o">|</span> <span class="mf">109.11</span> <span class="o">|</span> <span class="mf">95.05</span>
+
+<span class="n">Region</span> <span class="n">std</span>  <span class="o">|</span> <span class="n">Before</span> <span class="o">|</span> <span class="n">After</span> 
+ <span class="n">Background</span> <span class="o">|</span> <span class="mf">20.89</span> <span class="o">|</span> <span class="mf">10.70</span>
+ <span class="n">Region</span> <span class="mi">1</span>   <span class="o">|</span> <span class="mf">15.98</span> <span class="o">|</span> <span class="mf">8.87</span>
+ <span class="n">Region</span> <span class="mi">2</span>   <span class="o">|</span> <span class="mf">13.92</span> <span class="o">|</span> <span class="mf">6.75</span>
+ <span class="n">Region</span> <span class="mi">3</span>   <span class="o">|</span> <span class="mf">8.05</span> <span class="o">|</span> <span class="mf">6.86</span>
+
+<span class="n">Region</span> <span class="n">SNR</span>  <span class="o">|</span> <span class="n">Before</span> <span class="o">|</span> <span class="n">After</span> 
+ <span class="n">Background</span> <span class="o">|</span> <span class="mf">4.66</span> <span class="o">|</span> <span class="mf">1.80</span>
+ <span class="n">Region</span> <span class="mi">1</span>   <span class="o">|</span> <span class="mf">11.24</span> <span class="o">|</span> <span class="mf">10.57</span>
+ <span class="n">Region</span> <span class="mi">2</span>   <span class="o">|</span> <span class="mf">23.13</span> <span class="o">|</span> <span class="mf">54.08</span>
+ <span class="n">Region</span> <span class="mi">3</span>   <span class="o">|</span> <span class="mf">184.57</span> <span class="o">|</span> <span class="mf">192.87</span>
+</pre></div>
+</div>
+</section>
+<section id="show-compared-results">
+<h2>4) Show compared results<a class="headerlink" href="#show-compared-results" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1"># Plot the images to see the differences</span>
+<span class="linenos"> 2</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="n">images</span> <span class="o">=</span> <span class="p">[</span><span class="n">true_img</span><span class="p">,</span> <span class="n">noisy_img</span><span class="p">,</span> <span class="n">cleaned_img</span><span class="p">]</span>
+<span class="linenos"> 5</span><span class="n">titles</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Image without noise&quot;</span><span class="p">,</span> <span class="s2">&quot;Image with noise&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;After noise reduction f_size=</span><span class="si">{</span><span class="n">filter_size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos"> 8</span><span class="n">vmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">images</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.2</span>
+<span class="linenos"> 9</span>
+<span class="linenos">10</span><span class="c1"># Loop all images</span>
+<span class="linenos">11</span><span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">images</span><span class="p">,</span> <span class="n">titles</span><span class="p">):</span>
+<span class="linenos">12</span>    <span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">vmax</span><span class="p">)</span>
+<span class="linenos">13</span>    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+<span class="linenos">14</span>    <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span><span class="c1"># Shared colorbar</span>
+<span class="linenos">17</span><span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="p">(</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;vertical&#39;</span><span class="p">,</span> 
+<span class="linenos">18</span>             <span class="n">fraction</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Intensity&#39;</span><span class="p">)</span>
+<span class="linenos">19</span>
+<span class="linenos">20</span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><img alt="3 levels noise reduction" src="../_images/3-levels-clean.png" /></p>
+</section>
 </section>
 
 
@@ -362,7 +530,7 @@
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">uniform syntetic image</p>
+        <p class="prev-next-title">Uniform signal region</p>
       </div>
     </a>
     <a class="right-next"
@@ -370,7 +538,7 @@
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">three rois</p>
+        <p class="prev-next-title">Region-based processing</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -384,6 +552,21 @@
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#import-modules-and-define-useful-function">1) Import modules and define useful function</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#generate-and-clean-3-level-image-with-noise">2) Generate and clean 3-level image with noise</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#compute-levels-statistics">3) Compute levels statistics</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#show-compared-results">4) Show compared results</a></li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
   <div role="note" aria-label="source link">

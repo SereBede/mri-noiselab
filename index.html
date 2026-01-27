@@ -311,11 +311,11 @@ with support for masked data.
 Useful in image preprocessing for quantitative MRI studies.
 The core algorithm relies on the relationship among true signal A, the measured
 magnitude average  <code class="docutils literal notranslate"><span class="pre">m_ave</span></code> and standard deviation <code class="docutils literal notranslate"><span class="pre">m_sd</span></code> and the noise distribution
-<code class="docutils literal notranslate"><span class="pre">sigma_r</span></code> parameter, following this equation:
-$$<br />
-A^2 = m_ave^2 + m_sd^2 - 2 * sigma_r^2
-$$
-See the <a class="reference internal" href="notes.html"><span class="doc">Notes</span></a> page for full scientific explanations.</p>
+<code class="docutils literal notranslate"><span class="pre">sigma_r</span></code> parameter, following this equation:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>A = m_ave^2 + m_sd^2 - 2 * sigma_r^2
+</pre></div>
+</div>
+<p>See the <a class="reference internal" href="notes.html"><span class="doc">Notes</span></a> page for full scientific explanations.</p>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h2>
 <section id="from-source">
@@ -406,9 +406,9 @@ See <a class="reference internal" href="api/subtract-noise-masked.html"><span cl
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial/tut-index.html">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial/uniform_image.html">uniform syntetic image</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial/three_levels.html">tree levels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial/three_rois.html">three rois</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial/uniform_image.html">Uniform signal region</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial/three_levels.html">Spatially varying signal levels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial/three_rois.html">Region-based processing</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="howto/how-index.html">How to</a><ul>
@@ -421,8 +421,8 @@ See <a class="reference internal" href="api/subtract-noise-masked.html"><span cl
 <section id="author">
 <h2>Author<a class="headerlink" href="#author" title="Link to this heading">#</a></h2>
 <p>Serena Bedeschi
-email serena.bedeschi&#64;studio.unibo.it
-github SereBede</p>
+e-mail: serena.bedeschi&#64;studio.unibo.it
+GitHub: SereBede</p>
 </section>
 <section id="license">
 <h2>License<a class="headerlink" href="#license" title="Link to this heading">#</a></h2>

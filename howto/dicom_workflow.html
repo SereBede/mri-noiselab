@@ -341,30 +341,68 @@
                   
   <section id="dicom-workflow">
 <h1>DICOM workflow<a class="headerlink" href="#dicom-workflow" title="Link to this heading">#</a></h1>
-<p>What the script does:</p>
+<p>This how-to shows an end-to-end DICOM pipeline using <strong>pydicom</strong> and <code class="docutils literal notranslate"><span class="pre">mri_noiselab.subtract_noise()</span></code>:</p>
 <ul class="simple">
-<li><p>Load a DICOM image with <code class="docutils literal notranslate"><span class="pre">pydicom.dcmread(...)</span></code></p></li>
-<li><p>Extract the pixel array and convert it to float for processing</p></li>
-<li><p>Select a <strong>background ROI</strong> (noise-only) for Rayleigh noise estimation</p></li>
-<li><p>Apply <code class="docutils literal notranslate"><span class="pre">mri_noiselab.subtract_noise(...)</span></code> using a local window (<code class="docutils literal notranslate"><span class="pre">f_size</span></code>)</p></li>
-<li><p>Clip the corrected values back to the valid DICOM intensity range</p></li>
-<li><p>Save a <strong>new DICOM</strong> with updated metadata (including a new <code class="docutils literal notranslate"><span class="pre">SOPInstanceUID</span></code>)</p></li>
-<li><p>Optionally plot original vs corrected images</p></li>
+<li><p>Load a DICOM (<code class="docutils literal notranslate"><span class="pre">pydicom.dcmread</span></code>)</p></li>
+<li><p>Select a <strong>background ROI</strong> (noise-only, avoid zero padding)</p></li>
+<li><p>Apply noise subtraction with a local window (<code class="docutils literal notranslate"><span class="pre">f_size</span></code>)</p></li>
+<li><p>Convert back to a DICOM-compatible integer format</p></li>
+<li><p>Update metadata (new <code class="docutils literal notranslate"><span class="pre">SOPInstanceUID</span></code>) and save a new DICOM</p></li>
+<li><p>Visually compare original vs corrected images</p></li>
 </ul>
-<section id="requirements">
-<h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading">#</a></h2>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">pydicom</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">numpy</span></code>, <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code></p></li>
-<li><p>your package (<code class="docutils literal notranslate"><span class="pre">mri_noiselab</span></code>)</p></li>
-</ul>
-<p>If you haven’t yet install them:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>pydicom,
+<p>The example DICOM used here is provided in the repository:
+<a class="reference external" href="https://github.com/SereBede/mri-noiselab/tree/main/howto/howto_clean_dicom.py">example.dcm</a>.</p>
+<p><a class="reference external" href="https://github.com/SereBede/mri-noiselab/tree/main/data/example.py">Download code here</a></p>
+<section id="load-dicom-and-convert-pixel-data-to-float">
+<h2>Load DICOM and convert pixel data to float<a class="headerlink" href="#load-dicom-and-convert-pixel-data-to-float" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span>
+<span class="linenos"> 2</span><span class="c1"># --- Import required libraries ---</span>
+<span class="linenos"> 3</span><span class="kn">import</span><span class="w"> </span><span class="nn">pydicom</span>                     <span class="c1"># DICOM I/O</span>
+<span class="linenos"> 4</span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>                  <span class="c1"># Numerical operations</span>
+<span class="linenos"> 5</span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>     <span class="c1"># Visualization</span>
+<span class="linenos"> 6</span><span class="kn">from</span><span class="w"> </span><span class="nn">mri_noiselab</span><span class="w"> </span><span class="kn">import</span> <span class="n">subtract_noise</span>  <span class="c1"># Custom noise reduction function</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="c1"># ============================================================</span>
+<span class="linenos">10</span><span class="c1"># 1. Load DICOM image</span>
+<span class="linenos">11</span><span class="c1"># ============================================================</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span><span class="c1"># Read the DICOM file, containig metadata and pixel data</span>
+<span class="linenos">14</span><span class="c1"># (to open other dicom file replace with the actual file path)</span>
+<span class="linenos">15</span><span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">dcmread</span><span class="p">(</span><span class="s2">&quot;..\data\example.dcm&quot;</span><span class="p">)</span>
+<span class="linenos">16</span>
+<span class="linenos">17</span><span class="c1"># Convert pixel data to float for numerical processing</span>
+<span class="linenos">18</span><span class="c1"># (important to avoid integer overflow during calculations)</span>
+<span class="linenos">19</span><span class="n">img</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="linenos">20</span>
+<span class="linenos">21</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded image shape: </span><span class="si">{</span><span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, datatype: </span><span class="si">{</span><span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">22</span>
 </pre></div>
 </div>
 </section>
+<section id="define-background-roi-and-apply-noise-subtraction">
+<h2>Define background ROI and apply noise subtraction<a class="headerlink" href="#define-background-roi-and-apply-noise-subtraction" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1"># ============================================================</span>
+<span class="linenos"> 2</span><span class="c1"># 2. Define background region for noise estimation</span>
+<span class="linenos"> 3</span><span class="c1"># ============================================================</span>
+<span class="linenos"> 4</span><span class="n">bg_sample</span> <span class="o">=</span> <span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="mi">430</span><span class="p">))</span>
+<span class="linenos"> 5</span><span class="c1"># Select a background area (no anatomical signal expected)</span>
+<span class="linenos"> 6</span><span class="c1"># This region is used to estimate noise statistics</span>
+<span class="linenos"> 7</span><span class="n">background</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">bg_sample</span><span class="p">]</span>
+<span class="linenos"> 8</span><span class="c1"># (N.B. pay attention to not include the zeros padding!)</span>
+<span class="linenos"> 9</span>
+<span class="linenos">10</span><span class="c1"># ============================================================</span>
+<span class="linenos">11</span><span class="c1"># 3. Apply noise subtraction</span>
+<span class="linenos">12</span><span class="c1"># ============================================================</span>
+<span class="linenos">13</span>
+<span class="linenos">14</span><span class="c1"># Subtract estimated noise from the image</span>
+<span class="linenos">15</span><span class="c1"># f_size controls the filter/kernel pixel size used in the algorithm</span>
+<span class="linenos">16</span><span class="n">filter_s</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="linenos">17</span><span class="n">img_corr</span> <span class="o">=</span> <span class="n">subtract_noise</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">background</span><span class="p">,</span> <span class="n">f_size</span><span class="o">=</span><span class="n">filter_s</span><span class="p">)</span>
+</pre></div>
+</div>
 <section id="background-roi-advice">
-<h2>Background ROI advice<a class="headerlink" href="#background-roi-advice" title="Link to this heading">#</a></h2>
+<h3>Background ROI advice<a class="headerlink" href="#background-roi-advice" title="Link to this heading">#</a></h3>
 <p>Choose a region with <strong>no anatomical signal</strong> (pure background noise), and avoid:</p>
 <ul class="simple">
 <li><p>any anatomy / signal spillover</p></li>
@@ -373,123 +411,89 @@
 </ul>
 <p>A bad background ROI biases the Rayleigh σ estimate and can degrade the correction.</p>
 </section>
-<section id="source-code">
-<h2>Source code<a class="headerlink" href="#source-code" title="Link to this heading">#</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos">  1</span><span class="c1"># -*- coding: utf-8 -*-</span>
-<span class="linenos">  2</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="linenos">  3</span><span class="sd">HOW TO:</span>
-<span class="linenos">  4</span><span class="sd">Load a DICOM image, apply a background-based noise subtraction,</span>
-<span class="linenos">  5</span><span class="sd">export the corrected image as a new DICOM file,</span>
-<span class="linenos">  6</span><span class="sd">and visually compare original vs corrected images.</span>
-<span class="linenos">  7</span>
-<span class="linenos">  8</span><span class="sd">The dicom file used in this short guide is provided in the </span>
-<span class="linenos">  9</span><span class="sd">repository, its filename is MR_femur_head.dcm</span>
-<span class="linenos"> 10</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="linenos"> 11</span>
-<span class="linenos"> 12</span><span class="c1"># --- Import required libraries ---</span>
-<span class="linenos"> 13</span><span class="kn">import</span><span class="w"> </span><span class="nn">pydicom</span>                     <span class="c1"># DICOM I/O</span>
-<span class="linenos"> 14</span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>                  <span class="c1"># Numerical operations</span>
-<span class="linenos"> 15</span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>     <span class="c1"># Visualization</span>
-<span class="linenos"> 16</span><span class="kn">from</span><span class="w"> </span><span class="nn">mri_noiselab</span><span class="w"> </span><span class="kn">import</span> <span class="n">subtract_noise</span>  <span class="c1"># Custom noise reduction function</span>
-<span class="linenos"> 17</span>
-<span class="linenos"> 18</span>
-<span class="linenos"> 19</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 20</span><span class="c1"># 1. Load DICOM image</span>
-<span class="linenos"> 21</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 22</span>
-<span class="linenos"> 23</span><span class="c1"># Read the DICOM file, containig metadata and pixel data</span>
-<span class="linenos"> 24</span><span class="c1"># (to open other dicom file replace with the actual file path)</span>
-<span class="linenos"> 25</span><span class="n">ds</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">dcmread</span><span class="p">(</span><span class="s2">&quot;MR_femur_head.dcm&quot;</span><span class="p">)</span>
-<span class="linenos"> 26</span>
-<span class="linenos"> 27</span><span class="c1"># Convert pixel data to float for numerical processing</span>
-<span class="linenos"> 28</span><span class="c1"># (important to avoid integer overflow during calculations)</span>
-<span class="linenos"> 29</span><span class="n">img</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-<span class="linenos"> 30</span>
-<span class="linenos"> 31</span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded image shape: </span><span class="si">{</span><span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, datatype: </span><span class="si">{</span><span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos"> 32</span>
-<span class="linenos"> 33</span>
-<span class="linenos"> 34</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 35</span><span class="c1"># 2. Define background region for noise estimation</span>
-<span class="linenos"> 36</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 37</span>
-<span class="linenos"> 38</span><span class="c1"># Select a background area (no anatomical signal expected)</span>
-<span class="linenos"> 39</span><span class="c1"># This region is used to estimate noise statistics</span>
-<span class="linenos"> 40</span><span class="n">background</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">100</span><span class="p">,</span> <span class="mi">80</span><span class="p">:</span><span class="mi">430</span><span class="p">]</span>
-<span class="linenos"> 41</span><span class="c1"># (N.B. pay attention to not include the zeros padding!)</span>
-<span class="linenos"> 42</span>
-<span class="linenos"> 43</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 44</span><span class="c1"># 3. Apply noise subtraction</span>
-<span class="linenos"> 45</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 46</span>
-<span class="linenos"> 47</span><span class="c1"># Subtract estimated noise from the image</span>
-<span class="linenos"> 48</span><span class="c1"># f_size controls the filter/kernel pixel size used in the algorithm</span>
-<span class="linenos"> 49</span><span class="n">filter_s</span> <span class="o">=</span> <span class="mi">3</span>
-<span class="linenos"> 50</span><span class="n">img_corr</span> <span class="o">=</span> <span class="n">subtract_noise</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">background</span><span class="p">,</span> <span class="n">f_size</span><span class="o">=</span><span class="n">filter_s</span><span class="p">)</span>
-<span class="linenos"> 51</span>
-<span class="linenos"> 52</span>
-<span class="linenos"> 53</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 54</span><span class="c1"># 4. Convert corrected image back to DICOM-compatible format</span>
-<span class="linenos"> 55</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 56</span>
-<span class="linenos"> 57</span><span class="c1"># Clip values to the valid DICOM intensity range</span>
-<span class="linenos"> 58</span><span class="c1"># (defined in metadata by the number of stored bits)</span>
-<span class="linenos"> 59</span><span class="n">img_corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">img_corr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="n">ds</span><span class="o">.</span><span class="n">BitsStored</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-<span class="linenos"> 60</span>
-<span class="linenos"> 61</span><span class="c1"># Convert back to the original integer datatype</span>
-<span class="linenos"> 62</span><span class="n">img_corr</span> <span class="o">=</span> <span class="n">img_corr</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-<span class="linenos"> 63</span>
-<span class="linenos"> 64</span>
-<span class="linenos"> 65</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 66</span><span class="c1"># 5. Update DICOM dataset and save corrected image</span>
-<span class="linenos"> 67</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 68</span>
-<span class="linenos"> 69</span><span class="c1"># Replace pixel data</span>
-<span class="linenos"> 70</span><span class="n">ds</span><span class="o">.</span><span class="n">PixelData</span> <span class="o">=</span> <span class="n">img_corr</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>
-<span class="linenos"> 71</span>
-<span class="linenos"> 72</span><span class="c1"># Update image dimensions (safety check)</span>
-<span class="linenos"> 73</span><span class="n">ds</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">Columns</span> <span class="o">=</span> <span class="n">img_corr</span><span class="o">.</span><span class="n">shape</span>
-<span class="linenos"> 74</span>
-<span class="linenos"> 75</span><span class="c1"># Generate a new SOP Instance UID</span>
-<span class="linenos"> 76</span><span class="c1"># (mandatory when modifying pixel data)</span>
-<span class="linenos"> 77</span><span class="n">ds</span><span class="o">.</span><span class="n">SOPInstanceUID</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">uid</span><span class="o">.</span><span class="n">generate_uid</span><span class="p">()</span>
-<span class="linenos"> 78</span>
-<span class="linenos"> 79</span><span class="c1"># Save corrected DICOM file</span>
-<span class="linenos"> 80</span><span class="n">ds</span><span class="o">.</span><span class="n">save_as</span><span class="p">(</span><span class="s2">&quot;corrected_image.dcm&quot;</span><span class="p">)</span>
-<span class="linenos"> 81</span>
-<span class="linenos"> 82</span>
-<span class="linenos"> 83</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 84</span><span class="c1"># 6. Visual comparison: original vs corrected image</span>
-<span class="linenos"> 85</span><span class="c1"># ============================================================</span>
-<span class="linenos"> 86</span>
-<span class="linenos"> 87</span><span class="c1"># Create side-by-side plots</span>
-<span class="linenos"> 88</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
-<span class="linenos"> 89</span>
-<span class="linenos"> 90</span><span class="n">images</span> <span class="o">=</span> <span class="p">[</span><span class="n">img</span><span class="p">,</span> <span class="n">img_corr</span><span class="p">]</span>
-<span class="linenos"> 91</span><span class="n">titles</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Original image (with noise)&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;After noise reduction (f_size=</span><span class="si">{</span><span class="n">filter_s</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">]</span>
-<span class="linenos"> 92</span>
-<span class="linenos"> 93</span><span class="c1"># Shared intensity scale for fair comparison</span>
-<span class="linenos"> 94</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="linenos"> 95</span><span class="n">vmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="n">images</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.2</span>
-<span class="linenos"> 96</span>
-<span class="linenos"> 97</span><span class="c1"># Display images</span>
-<span class="linenos"> 98</span><span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">images</span><span class="p">,</span> <span class="n">titles</span><span class="p">):</span>
-<span class="linenos"> 99</span>    <span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">vmax</span><span class="p">)</span>
-<span class="linenos">100</span>    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
-<span class="linenos">101</span>    <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
-<span class="linenos">102</span>
-<span class="linenos">103</span><span class="c1"># Add a shared colorbar</span>
-<span class="linenos">104</span><span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span>
-<span class="linenos">105</span>    <span class="n">im</span><span class="p">,</span>
-<span class="linenos">106</span>    <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span>
-<span class="linenos">107</span>    <span class="n">orientation</span><span class="o">=</span><span class="s2">&quot;vertical&quot;</span><span class="p">,</span>
-<span class="linenos">108</span>    <span class="n">fraction</span><span class="o">=</span><span class="mf">0.046</span><span class="p">,</span>
-<span class="linenos">109</span>    <span class="n">pad</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span>
-<span class="linenos">110</span>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Pixel intensity&quot;</span>
-<span class="linenos">111</span><span class="p">)</span>
-<span class="linenos">112</span>
-<span class="linenos">113</span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</section>
+<section id="convert-corrected-image-back-to-dicom-format-and-save">
+<h2>Convert corrected image back to DICOM format and save<a class="headerlink" href="#convert-corrected-image-back-to-dicom-format-and-save" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1"># ============================================================</span>
+<span class="linenos"> 2</span><span class="c1"># 4. Convert corrected image back to DICOM-compatible format</span>
+<span class="linenos"> 3</span><span class="c1"># ============================================================</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="c1"># Clip values to the valid DICOM intensity range, no change in contrast</span>
+<span class="linenos"> 6</span><span class="c1"># (defined in metadata by the number of stored bits)</span>
+<span class="linenos"> 7</span><span class="n">img_corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">img_corr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="n">ds</span><span class="o">.</span><span class="n">BitsStored</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="c1"># Convert back to the original integer datatype</span>
+<span class="linenos">10</span><span class="n">img_corr</span> <span class="o">=</span> <span class="n">img_corr</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">pixel_array</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span><span class="c1"># ============================================================</span>
+<span class="linenos">14</span><span class="c1"># 5. Update DICOM dataset and save corrected image</span>
+<span class="linenos">15</span><span class="c1"># ============================================================</span>
+<span class="linenos">16</span>
+<span class="linenos">17</span><span class="c1"># Replace pixel data</span>
+<span class="linenos">18</span><span class="n">ds</span><span class="o">.</span><span class="n">PixelData</span> <span class="o">=</span> <span class="n">img_corr</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>
+<span class="linenos">19</span>
+<span class="linenos">20</span><span class="c1"># Update image dimensions (safety check)</span>
+<span class="linenos">21</span><span class="n">ds</span><span class="o">.</span><span class="n">Rows</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">Columns</span> <span class="o">=</span> <span class="n">img_corr</span><span class="o">.</span><span class="n">shape</span>
+<span class="linenos">22</span>
+<span class="linenos">23</span><span class="c1"># Generate a new SOP Instance UID</span>
+<span class="linenos">24</span><span class="c1"># (mandatory when modifying pixel data)</span>
+<span class="linenos">25</span><span class="n">ds</span><span class="o">.</span><span class="n">SOPInstanceUID</span> <span class="o">=</span> <span class="n">pydicom</span><span class="o">.</span><span class="n">uid</span><span class="o">.</span><span class="n">generate_uid</span><span class="p">()</span>
+<span class="linenos">26</span>
+<span class="linenos">27</span><span class="c1"># Save corrected DICOM file</span>
+<span class="linenos">28</span><span class="n">ds</span><span class="o">.</span><span class="n">save_as</span><span class="p">(</span><span class="s2">&quot;../data/corrected_image.dcm&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Key points:</p>
+<ul class="simple">
+<li><p>np.clip(…, 0, 2**BitsStored - 1) ensures valid intensity range as defined in dicom metadata</p></li>
+<li><p>a new SOPInstanceUID is mandatory when pixel data changes to ensure that the processed image is treated as a distinct DICOM object and avoid data conflicts in viewers.</p></li>
+</ul>
+</section>
+<section id="visual-comparison">
+<h2>Visual comparison<a class="headerlink" href="#visual-comparison" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1"># ============================================================</span>
+<span class="linenos"> 2</span><span class="c1"># 6. Visual comparison: original vs corrected image</span>
+<span class="linenos"> 3</span><span class="c1"># ============================================================</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="c1"># Create side-by-side plots</span>
+<span class="linenos"> 6</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="n">images</span> <span class="o">=</span> <span class="p">[</span><span class="n">img</span><span class="p">,</span> <span class="n">img_corr</span><span class="p">]</span>
+<span class="linenos"> 9</span><span class="n">titles</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Original image (with noise) bg_mean = </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">background</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">,</span>
+<span class="linenos">10</span>          <span class="sa">f</span><span class="s2">&quot;After noise reduction (f_size=</span><span class="si">{</span><span class="n">filter_s</span><span class="si">}</span><span class="s2">) bg_mean=</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">img_corr</span><span class="p">[</span><span class="n">bg_sample</span><span class="p">])</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">]</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span><span class="c1"># Shared intensity scale for fair comparison</span>
+<span class="linenos">13</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">14</span><span class="n">vmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="n">images</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.2</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span><span class="c1"># Display images</span>
+<span class="linenos">17</span><span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">images</span><span class="p">,</span> <span class="n">titles</span><span class="p">):</span>
+<span class="linenos">18</span>    <span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">vmax</span><span class="p">)</span>
+<span class="linenos">19</span>    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+<span class="linenos">20</span>    <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="linenos">21</span>
+<span class="linenos">22</span><span class="c1"># Add a shared colorbar</span>
+<span class="linenos">23</span><span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span>
+<span class="linenos">24</span>    <span class="n">im</span><span class="p">,</span>
+<span class="linenos">25</span>    <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span>
+<span class="linenos">26</span>    <span class="n">orientation</span><span class="o">=</span><span class="s2">&quot;vertical&quot;</span><span class="p">,</span>
+<span class="linenos">27</span>    <span class="n">fraction</span><span class="o">=</span><span class="mf">0.046</span><span class="p">,</span>
+<span class="linenos">28</span>    <span class="n">pad</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span>
+<span class="linenos">29</span>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Pixel intensity&quot;</span>
+<span class="linenos">30</span><span class="p">)</span>
+<span class="linenos">31</span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Background noise intensity is reduced.</p>
+<p><img alt="dicom result" src="../_images/dicom-clean.png" /></p>
+</section>
+<section id="see-also">
+<h2>See also<a class="headerlink" href="#see-also" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://pydicom.github.io/pydicom/stable/index.html">PyDicom Documentation</a></p></li>
+<li><p><a class="reference external" href="https://dicom.innolitics.com/ciods">Dicom Standard Browser</a></p></li>
+</ul>
 </section>
 </section>
 
@@ -531,9 +535,14 @@
   </div>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#requirements">Requirements</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#background-roi-advice">Background ROI advice</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#source-code">Source code</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#load-dicom-and-convert-pixel-data-to-float">Load DICOM and convert pixel data to float</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#define-background-roi-and-apply-noise-subtraction">Define background ROI and apply noise subtraction</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#background-roi-advice">Background ROI advice</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#convert-corrected-image-back-to-dicom-format-and-save">Convert corrected image back to DICOM format and save</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visual-comparison">Visual comparison</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#see-also">See also</a></li>
 </ul>
   </nav></div>
 

@@ -362,8 +362,8 @@ quadrature sum of a deterministic signal and Gaussian noise, producing
 synthetic magnitude data of the form:</p>
 <p>M = sqrt{A^2 + N^2}</p>
 <p><a class="reference external" href="https://github.com/SereBede/mri-noiselab/tree/main/tutorial/noise_model_explanation.py">Download code here</a></p>
-<section id="import-useful-functions-and-random-generator">
-<h2>Import, useful functions and random generator<a class="headerlink" href="#import-useful-functions-and-random-generator" title="Link to this heading">#</a></h2>
+<section id="import-modules-define-useful-functions-and-istanciate-random-generator">
+<h2>Import modules, define useful functions and istanciate random generator<a class="headerlink" href="#import-modules-define-useful-functions-and-istanciate-random-generator" title="Link to this heading">#</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="linenos"> 2</span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="linenos"> 3</span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
@@ -515,7 +515,7 @@ then run mrnl.subtract_noise(image, bg_area).</p>
 <span class="linenos">23</span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
-<p><img alt="Noise subtraction on a phantom" src="../_images/phantom-clean.png" /></p>
+<p><img alt="Noise subtraction on phantom" src="../_images/phantom-clean.png" /></p>
 </section>
 <section id="references-and-further-reading">
 <h2>References and further reading<a class="headerlink" href="#references-and-further-reading" title="Link to this heading">#</a></h2>
@@ -578,7 +578,7 @@ in MR images</em>, Medical Physics, 1985.</p></li>
   </div>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#import-useful-functions-and-random-generator">Import, useful functions and random generator</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#import-modules-define-useful-functions-and-istanciate-random-generator">Import modules, define useful functions and istanciate random generator</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#background-rayleigh-noise-distribution-generation">1) Background Rayleigh noise distribution generation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#signal-rician-distribution-generation">2) Signal Rician distribution generation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#apply-cleaning-on-a-small-phantom">3) Apply cleaning on a small phantom</a></li>
