@@ -394,6 +394,7 @@ def subtract_noise_masked(
 
     # user can better control borders effect in local image statistic computation 
     image_filled = image_ma.filled(fill_value)
+    # NOTE the mode="constant" parameter in uniform_filter affects only image borders 
     
     # NOTE computation is still performed for all the image size
     output = subtract_noise(image_filled, bg_valid, **kwargs)

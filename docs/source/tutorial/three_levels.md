@@ -1,2 +1,72 @@
-# tree levels
+# Spatially varying signal levels
 
+This example simulates a synthetic magnitude image with **three distinct signal levels** plus background
+**Rayleigh noise**, and then applies `mri_noiselab.subtract_noise()` to reduce noise while preserving
+the different intensity regions.
+
+Core steps in the script:
+1. Build a synthetic “true” phantom with **three intensity levels** concentric squares.
+2. Sample Rayleigh noise for the background (`rng.rayleigh(...)`)
+3. Combine signal and noise in quadrature (`sqrt(signal^2 + noise^2)`)
+4. Apply `mrnl.subtract_noise(noisy_img, bg_noise, f_size=...)`
+5. Compare images and print simple statistics region-wise
+
+[Download code here](https://github.com/SereBede/mri-noiselab/tree/main/tutorial/example_3levels_image.py)
+
+## 1) Import modules and define useful function
+
+```{literalinclude} ..\..\..\tutorial\example_3levels_image.py
+:language: python
+:linenos:
+:lines: 11-46
+```
+
+## 2) Generate and clean 3-level image with noise
+
+```{literalinclude} ..\..\..\tutorial\example_3levels_image.py
+:language: python
+:linenos:
+:lines: 48-76
+```
+
+## 3) Compute levels statistics 
+
+```{literalinclude} ..\..\..\tutorial\example_3levels_image.py
+:language: python
+:linenos:
+:lines: 77-100
+```
+Inspecting the standard output, here under, it is possible to observe that in cleaned regions:
+- mean magnitude approximates better the true signal (NB: for background=0)
+- the standard deviation is reduced 
+- the SNR improves
+
+```
+(Example standard output)
+Region mean | Before | After 
+ Background | 39.96 | 9.55
+ Region 1   | 51.13 | 27.44
+ Region 2   | 65.46 | 49.18
+ Region 3   | 109.11 | 95.05
+
+Region std  | Before | After 
+ Background | 20.89 | 10.70
+ Region 1   | 15.98 | 8.87
+ Region 2   | 13.92 | 6.75
+ Region 3   | 8.05 | 6.86
+
+Region SNR  | Before | After 
+ Background | 4.66 | 1.80
+ Region 1   | 11.24 | 10.57
+ Region 2   | 23.13 | 54.08
+ Region 3   | 184.57 | 192.87
+```
+
+## 4) Show compared results
+
+```{literalinclude} ..\..\..\tutorial\example_3levels_image.py
+:language: python
+:linenos:
+:lines: 102-121
+```
+![3 levels noise reduction](../_static/images/3-levels-clean.png)

@@ -57,7 +57,7 @@ noise_level = 40
 filter_size = 5
 
 
-# Generate a 3 levels true image
+# Generate a 3 levels true image with concentric squares
 true_img = np.zeros((120,120))
 true_img[20:100,20:100] = true_signal_1
 true_img[35:85,35:85] = true_signal_2
@@ -67,34 +67,36 @@ true_img[50:70,50:70] = true_signal_3
 rng = np.random.default_rng(seed=42)
 bg_noise = rng.rayleigh(scale=noise_level/1.253, size=np.shape(true_img))
 
-bg_stats = img_stats(bg_noise)
-
 # Background Noise is summed in quadrature to true signal
 noisy_img = np.sqrt(np.square(true_img) + np.square(bg_noise))
-
-noisy_stats_1 = img_stats(noisy_img[20:100,20:100])
-noisy_stats_2 = img_stats(noisy_img[35:85,35:85])
-noisy_stats_3 = img_stats(noisy_img[50:70,50:70])
 
 ## Then given bg_noise clean it in noisy_img
 cleaned_img = mrnl.subtract_noise(noisy_img, bg_noise,f_size=filter_size)
 cleaned_stats = img_stats(cleaned_img)
 
-cleaned_stats_1 = img_stats(cleaned_img[20:100,20:100])
-cleaned_stats_2 = img_stats(cleaned_img[35:85,35:85])
-cleaned_stats_3 = img_stats(cleaned_img[50:70,50:70])
+# Beware selecting uniform level areas for stats!
+bg_stats = img_stats(noisy_img[0:20,:])
+noisy_stats_1 = img_stats(noisy_img[20:35,20:100])
+noisy_stats_2 = img_stats(noisy_img[35:50,35:85])
+noisy_stats_3 = img_stats(noisy_img[50:70,50:70])
+
+
 cleaned_stats_bg = img_stats(cleaned_img[0:20,:])
+cleaned_stats_1 = img_stats(cleaned_img[20:35,20:100])
+cleaned_stats_2 = img_stats(cleaned_img[35:50,35:85])
+cleaned_stats_3 = img_stats(cleaned_img[50:70,50:70])
+
 
 #After cleaning the SNR should improve
 
-statistics = {'ave':'Region mean','sd':'Region std','snr':'Signal to Noise ratio'}
+statistics = {'ave':'Region mean','sd':'Region std ','snr':'Region SNR '}
 
 for s in statistics.keys():
     print(f'{statistics[s]} | Before | After \n',
          f'Background | {bg_stats[s]:.2f} | {cleaned_stats_bg[s]:.2f}\n', 
-         f'Region 1 | {noisy_stats_1[s]:.2f} | {cleaned_stats_1[s]:.2f}\n',
-         f'Region 2 | {noisy_stats_2[s]:.2f} | {cleaned_stats_2[s]:.2f}\n',
-         f'Region 3 | {noisy_stats_3[s]:.2f} | {cleaned_stats_3[s]:.2f}')
+         f'Region 1   | {noisy_stats_1[s]:.2f} | {cleaned_stats_1[s]:.2f}\n',
+         f'Region 2   | {noisy_stats_2[s]:.2f} | {cleaned_stats_2[s]:.2f}\n',
+         f'Region 3   | {noisy_stats_3[s]:.2f} | {cleaned_stats_3[s]:.2f}\n')
 
 
 # Plot the images to see the differences
@@ -114,6 +116,6 @@ for ax, img, title in zip(axes, images, titles):
 
 # Shared colorbar
 fig.colorbar(im, ax=(axes[0],axes[1],axes[2]), orientation='vertical', 
-             fraction=0.046, pad=0.04, label='Intensity')
+             fraction=0.05, pad=0.04, label='Intensity')
 
 plt.show()

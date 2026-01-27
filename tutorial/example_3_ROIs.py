@@ -10,7 +10,7 @@ Example: clean one ROI at a time using masked arrays.
 
 import numpy as np
 import matplotlib.pyplot as plt
-import mri_noiselab as mrnl
+from mri_noiselab import subtract_noise_masked
 
 
 def img_stats(image):
@@ -22,7 +22,7 @@ def img_stats(image):
 
     ave = float(np.mean(data))
     sd = float(np.std(data))
-    p_signal = float(np.mean(data * data))
+    p_signal = float(np.mean(np.square(data)))
     p_noise = float(np.var(data))
     snr = p_signal / p_noise if p_noise != 0 else 0.0
     return {"ave": ave, "sd": sd, "snr": snr}
@@ -31,16 +31,21 @@ def img_stats(image):
 # -----------------------------
 # 1) Simulate 3-level signal + Rayleigh noise
 # -----------------------------
-true_signal_1 = 30
-true_signal_2 = 50
-true_signal_3 = 100
+
+# Define nested slices of concentric squares setting true signal
+nested_slices = {
+    "Background" : ( (slice(None), slice(None)) ,  0.0),
+    "Region 1": ( (slice(20, 100), slice(20, 100)),30.0), 
+    "Region 2": ( (slice(35, 85),  slice(35, 85)), 50.0),
+    "Region 3": ( (slice(50, 70),  slice(50, 70)), 100.0),
+}
+
 noise_level = 40
 filter_size = 5
 
 true_img = np.zeros((120, 120))
-true_img[20:100, 20:100] = true_signal_1
-true_img[35:85, 35:85] = true_signal_2
-true_img[50:70, 50:70] = true_signal_3
+for name, ((rr, cc), true_sig) in nested_slices.items():
+    true_img[rr, cc] = true_sig
 
 rng = np.random.default_rng(seed=42)
 bg_noise = rng.rayleigh(scale=noise_level/1.253, size=true_img.shape)
@@ -50,91 +55,77 @@ noisy_img = np.sqrt(np.square(true_img) + np.square(bg_noise))
 # -----------------------------
 # 2) Define DISJOINT region masks (one per signal level)
 # -----------------------------
-# Base ROIs (nested)
-roi1 = np.zeros_like(noisy_img, dtype=bool)
-roi2 = np.zeros_like(noisy_img, dtype=bool)
-roi3 = np.zeros_like(noisy_img, dtype=bool)
-
-roi1[20:100, 20:100] = True
-roi2[35:85, 35:85] = True
-roi3[50:70, 50:70] = True
+# Base ROIs (nested) create a dictionary 
+roi = {}
+for name, ((rr, cc), true_sig) in nested_slices.items():
+    m = np.zeros_like(noisy_img, dtype=bool)
+    m[rr, cc] = True
+    roi[name] = m
 
 # Make them disjoint:
-# region3 = core = roi3
+# region3 = core = roi["Region 3"]
 # region2 = middle ring (roi2 minus roi3)
-roi2 = roi2 & (~roi3)
+roi["Region 2"] &= (~roi["Region 3"])
 # region1 = outer ring (roi1 minus roi2 or 3)
-roi1 = roi1 & (~(roi2 | roi3))
-
-region1 = np.ma.array(noisy_img, mask=~roi1)
-region2 = np.ma.array(noisy_img, mask=~roi2)
-region3 = np.ma.array(noisy_img, mask=~roi3)
-
-
-# -----------------------------
-# 3) Build a masked background for noise estimation
-# -----------------------------
+roi["Region 1"] &= ~(roi["Region 2"] | roi["Region 3"])
 # Background = outside any other ROI
-roi_bg = ~(roi1 | roi2 | roi3) 
-bg_ma = np.ma.array(noisy_img, mask=~roi_bg)  # mask everything that's NOT background
+roi["Background"] = ~(roi["Region 1"] | roi["Region 2"] | roi["Region 3"])
 
+# Plot the resulting ROIs
+fig, ax = plt.subplots(2, 2, figsize=(10, 10))
+order = [
+    ("Background", (0, 0), "Background ROI"),
+    ("Region 1",   (0, 1), "ROI Region 1 (outer ring)"),
+    ("Region 2",   (1, 0), "ROI Region 2 (middle ring)"),
+    ("Region 3",   (1, 1), "ROI Region 3 (core)"),
+]
 
-# -----------------------------
-# 4) Clean one region at a time (using masked image input)
-# -----------------------------
+for name, (i, j), title in order:
+    ax[i, j].imshow(roi[name], cmap="gray")
+    ax[i, j].set_title(title)
+    ax[i, j].axis("off")
 
-cleaned_r1 = mrnl.subtract_noise_masked(
-                region1, bg_ma, fill_value=np.mean(region1), f_size=filter_size)
-cleaned_r2 = mrnl.subtract_noise_masked(
-                region2, bg_ma, fill_value=np.mean(region2), f_size=filter_size)
-cleaned_r3 = mrnl.subtract_noise_masked(
-                region3, bg_ma, fill_value=np.mean(region3), f_size=filter_size)
-cleaned_bg = mrnl.subtract_noise_masked(
-                bg_ma, bg_ma, fill_value=0.0, f_size=filter_size)
-
-# -----------------------------
-# 5) Merge cleaned regions into a final image
-# -----------------------------
-cleaned_full = noisy_img.copy()
-
-# Replace only pixels that are NOT masked in each region result
-cleaned_full[~cleaned_r1.mask] = cleaned_r1.data[~cleaned_r1.mask]
-cleaned_full[~cleaned_r2.mask] = cleaned_r2.data[~cleaned_r2.mask]
-cleaned_full[~cleaned_r3.mask] = cleaned_r3.data[~cleaned_r3.mask]
-cleaned_full[~cleaned_bg.mask] = cleaned_bg.data[~cleaned_bg.mask]
+plt.tight_layout()
+plt.show()
 
 # -----------------------------
-# 6) Stats: before vs after per region
+# 3) Clean one region at a time (using masked image input)
 # -----------------------------
-noisy_r1_stats = img_stats(region1)
-noisy_r2_stats = img_stats(region2)
-noisy_r3_stats = img_stats(region3)
 
-bg_stats = img_stats(bg_ma)  # masked background stats
+# appling masks, do not forget to invert them to obtain ROIs
+cleaned = noisy_img.copy()
+bg_ma = np.ma.array(noisy_img, mask=~ roi["Background"])
 
-clean_r1_stats = img_stats(cleaned_full[roi1])
-clean_r2_stats = img_stats(cleaned_full[roi2])
-clean_r3_stats = img_stats(cleaned_full[roi3])
-clean_bg_stats = img_stats(cleaned_full[roi_bg])
-
-
-statistics = {"ave": "Region mean", "sd": "Region std", "snr": "Signal-to-noise ratio"}
-for k, label in statistics.items():
-    print(
-        f"{label} | Before | After\n"
-        f"Background | {bg_stats[k]:.2f} | {clean_bg_stats[k]:.2f}\n"
-        f"Region 1    | {noisy_r1_stats[k]:.2f} | {clean_r1_stats[k]:.2f}\n"
-        f"Region 2    | {noisy_r2_stats[k]:.2f} | {clean_r2_stats[k]:.2f}\n"
-        f"Region 3    | {noisy_r3_stats[k]:.2f} | {clean_r3_stats[k]:.2f}\n"
+for name, seg in roi.items(): # seg as "segmentation" == roi
+    region_ma = np.ma.array(cleaned, mask=~seg) # (True mask => ignored pixel)
+    fill = np.mean(region_ma) 
+            
+    region_ma = subtract_noise_masked(
+        region_ma,
+        bg_ma,       # noise estimate from background
+        fill_value = fill,
+        f_size=filter_size,
     )
+    cleaned[seg] = region_ma.data[seg]
+
+# -----------------------------
+# 4) Stats: before vs after per region
+# -----------------------------
+
+statistics = {"ave": "Region MEAN", "sd": "Region STD", "snr": "Region SNR"}
+for k, label in statistics.items():
+    print(f"{label} | Before | After")
+    for name, seg in roi.items():
+        print(f"{name:10s} | {img_stats(noisy_img[seg])[k]:.2f} | {img_stats(cleaned[seg])[k]:.2f}")
+    print()
 
 
 # -----------------------------
-# 7) Plot: true, noisy, cleaned-by-region
+# 5) Plot: true, noisy, cleaned-by-region
 # -----------------------------
 fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-images = [true_img, noisy_img, cleaned_full]
+images = [true_img, noisy_img, cleaned]
 titles = ["True image (no noise)", "Noisy image", f"Cleaned (ROI-by-ROI), f_size={filter_size}"]
 
 vmin = 0

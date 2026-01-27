@@ -46,7 +46,7 @@ def img_stats (image):
 # Create a uniform signal image affected by Rayleigh noise
 # change those values to vary noise contribution
 true_signal = 50
-noise_level = 20
+noise_level = 20 #intended as noise magnitude mean
 
 
 # Generate a uniform signal image
@@ -70,7 +70,7 @@ cleaned_stats = img_stats(cleaned_img)
 
 # After cleaning the SNR should improve
 print(f'True Signal = {true_signal:.2f}, Noise Level = {noise_level:.2f} \n',
-     f'Mean intensity with Noise = {noisy_stats['ave']:.2f}, SNR = {noisy_stats['snr']:.2f},\n',
+     f'Mean intensity with noise = {noisy_stats['ave']:.2f}, SNR = {noisy_stats['snr']:.2f},\n',
      f'Mean intensity after noise reduction = {cleaned_stats['ave']:.2f}, SNR = {cleaned_stats['snr']:.2f}')
 
 # Plot the images to see the differences

@@ -9,9 +9,9 @@ Useful in image preprocessing for quantitative MRI studies.
 The core algorithm relies on the relationship among true signal A, the measured 
 magnitude average  `m_ave` and standard deviation `m_sd` and the noise distribution 
 `sigma_r` parameter, following this equation:
-$$   
-    A^2 = m_ave^2 + m_sd^2 - 2 * sigma_r^2
-$$
+   
+    A = m_ave^2 + m_sd^2 - 2 * sigma_r^2
+
 See the {doc}`notes` page for full scientific explanations.
 
 ## Installation
@@ -111,8 +111,9 @@ howto/how-index
 
 ## Author
 Serena Bedeschi
-email serena.bedeschi@studio.unibo.it
-github SereBede
+e-mail: serena.bedeschi@studio.unibo.it
+GitHub: SereBede
+
 
 ## License
 This project is licensed under the Creative Commons
@@ -124,6 +125,7 @@ Free access to the source code at GitHub repository
 
 Commercial use is not permitted without explicit permission
 from the author.
+
 
 ## Contributing
 

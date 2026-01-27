@@ -11,11 +11,5 @@ The examples are designed to be simple and controlled, so that the effect of Ray
    three_levels
    three_rois
 
-- uniform signal regions,
-
-- spatially varying signal levels,
-
-- region-based (ROI) processing.
-
 Together, these tutorials help build intuition before applying the method to real MRI data
 

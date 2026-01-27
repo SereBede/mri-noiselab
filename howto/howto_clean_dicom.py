@@ -6,7 +6,7 @@ export the corrected image as a new DICOM file,
 and visually compare original vs corrected images.
 
 The dicom file used in this short guide is provided in the 
-repository, its filename is MR_femur_head.dcm
+repository, inside the 'data' folder.
 """
 
 # --- Import required libraries ---
@@ -22,7 +22,7 @@ from mri_noiselab import subtract_noise  # Custom noise reduction function
 
 # Read the DICOM file, containig metadata and pixel data
 # (to open other dicom file replace with the actual file path)
-ds = pydicom.dcmread("MR_femur_head.dcm")
+ds = pydicom.dcmread("..\data\example.dcm")
 
 # Convert pixel data to float for numerical processing
 # (important to avoid integer overflow during calculations)
@@ -34,10 +34,10 @@ print(f"Loaded image shape: {img.shape}, datatype: {img.dtype}")
 # ============================================================
 # 2. Define background region for noise estimation
 # ============================================================
-
+bg_sample = (slice(0, 100), slice(80, 430))
 # Select a background area (no anatomical signal expected)
 # This region is used to estimate noise statistics
-background = img[0:100, 80:430]
+background = img[bg_sample]
 # (N.B. pay attention to not include the zeros padding!)
 
 # ============================================================
@@ -54,7 +54,7 @@ img_corr = subtract_noise(img, background, f_size=filter_s)
 # 4. Convert corrected image back to DICOM-compatible format
 # ============================================================
 
-# Clip values to the valid DICOM intensity range
+# Clip values to the valid DICOM intensity range, no change in contrast
 # (defined in metadata by the number of stored bits)
 img_corr = np.clip(img_corr, 0, 2**ds.BitsStored - 1)
 
@@ -77,7 +77,7 @@ ds.Rows, ds.Columns = img_corr.shape
 ds.SOPInstanceUID = pydicom.uid.generate_uid()
 
 # Save corrected DICOM file
-ds.save_as("corrected_image.dcm")
+ds.save_as("../data/corrected_image.dcm")
 
 
 # ============================================================
@@ -88,7 +88,8 @@ ds.save_as("corrected_image.dcm")
 fig, axes = plt.subplots(1, 2, figsize=(16, 8))
 
 images = [img, img_corr]
-titles = ["Original image (with noise)", f"After noise reduction (f_size={filter_s})"]
+titles = [f"Original image (with noise) bg_mean = {np.mean(background):.2f} ",
+          f"After noise reduction (f_size={filter_s}) bg_mean={np.mean(img_corr[bg_sample]):.2f} "]
 
 # Shared intensity scale for fair comparison
 vmin = 0
@@ -109,5 +110,4 @@ fig.colorbar(
     pad=0.04,
     label="Pixel intensity"
 )
-
 plt.show()

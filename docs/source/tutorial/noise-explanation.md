@@ -26,7 +26,7 @@ M = sqrt{A^2 + N^2}
 
 [Download code here](https://github.com/SereBede/mri-noiselab/tree/main/tutorial/noise_model_explanation.py)
 
-## Import, useful functions and random generator
+## Import modules, define useful functions and istanciate random generator
 
 ```{literalinclude} ..\..\..\tutorial\noise_model_explanation.py
 :language: python
@@ -61,7 +61,7 @@ then run mrnl.subtract_noise(image, bg_area).
 :linenos:
 :lines: 151-173
 ```
-![Noise subtraction on a phantom](../_static/images/phantom-clean.png)
+![Noise subtraction on phantom](../_static/images/phantom-clean.png)
 
 
 ## References and further reading

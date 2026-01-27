@@ -36,7 +36,7 @@ then inside you python code import the module
 If not present automatically installed by pip, or in case pip asks for upgrade.
 
 ## Documentation
-Full documentatio is provided at the page 
+Full documentation is provided at the page 
 https://serebede.github.io/mri-noiselab/index.html
 
 See the following tutorial in this same github repository:
